@@ -4,24 +4,49 @@ build-backend = "hatchling.build"
 
 [project]
 name = "colfit"
-version = "0.1.0"
-description = "Arrange strings into evenly sized terminal columns that fit a width, display-width aware"
+version = "0.2.0"
+description = "Fit text to terminal columns: grapheme-aware width, truncate, pad, wrap and columnize"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = []
+keywords = [
+    "terminal",
+    "columns",
+    "display width",
+    "wcwidth",
+    "grapheme",
+    "truncate",
+    "ellipsis",
+    "wrap",
+    "ansi",
+    "unicode",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Terminals",
+    "Topic :: Text Processing",
     "Typing :: Typed",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "build", "twine"]
+dev = ["ruff", "mypy", "pytest", "build", "twine", "wcwidth==0.9.2"]
+
+[project.scripts]
+colfit = "colfit._cli:main"
 
 [project.urls]
 Homepage = "https://lianes8studio.com"
