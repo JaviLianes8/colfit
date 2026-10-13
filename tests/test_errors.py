@@ -40,7 +40,7 @@ def test_wrap_and_columnize_need_at_least_one_column() -> None:
 
 
 @pytest.mark.parametrize("function", LINE_FUNCTIONS)
-@pytest.mark.parametrize("control", ["\n", "\r", "\x00", "\x7f", "\x85", " ", "\x1b[1m\x07"])
+@pytest.mark.parametrize("control", ["\n", "\r", "\x00", "\x7f", "\x85", "\u2028", "\x1b[1m\x07"])
 def test_single_line_text_rejects_control_characters(
     function: Callable[..., Any], control: str
 ) -> None:
@@ -77,7 +77,7 @@ def test_side_align_and_order_must_be_known_values() -> None:
         columnize(["a"], order="diagonal")  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize("fill", ["", "ab", "日", "́", "\x1b[1m", "é́x"])
+@pytest.mark.parametrize("fill", ["", "ab", "\u65e5", "\u0301", "\x1b[1m", "e\u0301\u0301x"])
 def test_fill_must_be_one_character_one_column_wide(fill: str) -> None:
     with pytest.raises(ValueError, match="fill must be one character one column wide"):
         pad("abc", 5, fill=fill)
@@ -86,7 +86,7 @@ def test_fill_must_be_one_character_one_column_wide(fill: str) -> None:
 
 
 def test_fill_may_carry_marks_if_it_stays_one_column() -> None:
-    assert pad("a", 3, fill="é") == "aéé"
+    assert pad("a", 3, fill="e\u0301") == "ae\u0301e\u0301"
 
 
 def test_max_lines_must_be_a_positive_int() -> None:

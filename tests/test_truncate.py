@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from colfit import display_width, truncate
 
-E = "…"
+E = "\u2026"
 
 
 def test_text_that_fits_is_returned_unchanged() -> None:
@@ -30,8 +30,8 @@ def test_middle_cut_gives_the_odd_column_to_the_start() -> None:
 
 def test_middle_cut_lets_the_end_use_a_column_the_start_could_not() -> None:
     # The start half is 2 columns but a wide character does not fit in it.
-    assert truncate("日本abcdef", 5, side="middle") == "日" + E + "ef"
-    assert truncate("a日bcdefgh", 5, side="middle") == "a" + E + "fgh"
+    assert truncate("\u65e5\u672cabcdef", 5, side="middle") == "\u65e5" + E + "ef"
+    assert truncate("a\u65e5bcdefgh", 5, side="middle") == "a" + E + "fgh"
 
 
 def test_custom_ellipsis_and_empty_ellipsis() -> None:
@@ -40,19 +40,19 @@ def test_custom_ellipsis_and_empty_ellipsis() -> None:
 
 
 def test_wide_characters_are_never_split() -> None:
-    assert truncate("日本語", 4) == "日" + E
-    assert display_width(truncate("日本語", 4)) == 3
+    assert truncate("\u65e5\u672c\u8a9e", 4) == "\u65e5" + E
+    assert display_width(truncate("\u65e5\u672c\u8a9e", 4)) == 3
 
 
 def test_clusters_are_never_split() -> None:
-    family = "\U0001f468‍\U0001f469‍\U0001f467"
+    family = "\U0001f468\u200d\U0001f469\u200d\U0001f467"
     assert truncate(family * 3, 5) == family * 2 + E
-    assert truncate("ééé", 2) == "é" + E
+    assert truncate("e\u0301e\u0301e\u0301", 2) == "e\u0301" + E
     assert truncate("\U0001f1ea\U0001f1f8\U0001f1eb\U0001f1f7", 3) == "\U0001f1ea\U0001f1f8" + E
 
 
 def test_zero_width_clusters_before_the_cut_are_kept() -> None:
-    assert truncate("ab​cdef", 3) == "ab​" + E
+    assert truncate("ab\u200bcdef", 3) == "ab\u200b" + E
 
 
 def test_width_zero_keeps_only_escape_sequences() -> None:
@@ -62,7 +62,7 @@ def test_width_zero_keeps_only_escape_sequences() -> None:
 
 def test_ellipsis_wider_than_the_width_is_cut_itself() -> None:
     assert truncate("abcdef", 2, ellipsis="...") == ".."
-    assert truncate("abcdef", 1, ellipsis="日") == ""
+    assert truncate("abcdef", 1, ellipsis="\u65e5") == ""
 
 
 def test_cut_ellipsis_keeps_its_escape_sequences() -> None:

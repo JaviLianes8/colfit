@@ -44,7 +44,7 @@ def test_each_sequence_takes_no_columns(sequence: str) -> None:
 
 
 def test_text_without_escapes_is_one_piece() -> None:
-    assert pieces("plain é") == [("plain é", False)]
+    assert pieces("plain \u00e9") == [("plain \u00e9", False)]
     assert pieces("") == []
 
 
@@ -55,7 +55,7 @@ def test_unfinished_sequences_run_to_the_end() -> None:
 
 
 def test_a_sequence_broken_by_a_character_out_of_range_ends_there() -> None:
-    assert pieces("\x1b[31éx") == [("\x1b[31", True), ("éx", False)]
+    assert pieces("\x1b[31\u00e9x") == [("\x1b[31", True), ("\u00e9x", False)]
 
 
 def test_adjacent_sequences_are_separate_pieces() -> None:
@@ -72,4 +72,4 @@ def test_c1_characters_that_open_nothing_are_plain_text() -> None:
 
 def test_cut_keeps_the_sequences_of_the_removed_text_after_the_ellipsis() -> None:
     text = "\x1b]8;;https://x.y\x1b\\a long link\x1b]8;;\x1b\\"
-    assert truncate(text, 4) == "\x1b]8;;https://x.y\x1b\\a l…\x1b]8;;\x1b\\"
+    assert truncate(text, 4) == "\x1b]8;;https://x.y\x1b\\a l\u2026\x1b]8;;\x1b\\"

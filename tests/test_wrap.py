@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from colfit import wrap
 
-E = "…"
+E = "\u2026"
 TEXT = "The quick brown fox jumps over the lazy dog"
 
 
@@ -36,7 +36,7 @@ def test_line_breaks_start_paragraphs_and_blank_lines_stay() -> None:
 
 def test_long_words_break_between_clusters() -> None:
     assert wrap("abcdefgh", 3) == ["abc", "def", "gh"]
-    assert wrap("ééé", 2) == ["éé", "é"]
+    assert wrap("e\u0301e\u0301e\u0301", 2) == ["e\u0301e\u0301", "e\u0301"]
 
 
 def test_a_broken_word_shares_its_last_line() -> None:
@@ -45,11 +45,11 @@ def test_a_broken_word_shares_its_last_line() -> None:
 
 
 def test_wide_characters_break_without_splitting() -> None:
-    assert wrap("日本語です", 5) == ["日本", "語で", "す"]
+    assert wrap("\u65e5\u672c\u8a9e\u3067\u3059", 5) == ["\u65e5\u672c", "\u8a9e\u3067", "\u3059"]
 
 
 def test_a_cluster_wider_than_the_line_gets_a_line_of_its_own() -> None:
-    assert wrap("a日b", 1) == ["a", "日", "b"]
+    assert wrap("a\u65e5b", 1) == ["a", "\u65e5", "b"]
 
 
 def test_escape_sequences_stay_with_the_text_before_them() -> None:

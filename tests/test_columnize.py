@@ -56,12 +56,12 @@ def test_gap_sets_the_space_between_columns() -> None:
 
 
 def test_wide_characters_count_as_two_columns() -> None:
-    assert columnize(["日", "x", "y", "z"], width=6, gap=2) == "日  x\ny   z"
+    assert columnize(["\u65e5", "x", "y", "z"], width=6, gap=2) == "\u65e5  x\ny   z"
 
 
 def test_emoji_and_accents_line_up() -> None:
-    items = ["\U0001f1ea\U0001f1f8", "é", "ab", "c"]
-    assert columnize(items, width=6) == "\U0001f1ea\U0001f1f8  é\nab  c"
+    items = ["\U0001f1ea\U0001f1f8", "e\u0301", "ab", "c"]
+    assert columnize(items, width=6) == "\U0001f1ea\U0001f1f8  e\u0301\nab  c"
 
 
 def test_coloured_items_are_padded_by_their_visible_width() -> None:

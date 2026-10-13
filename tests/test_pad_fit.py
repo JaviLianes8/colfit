@@ -23,7 +23,7 @@ def test_pad_uses_the_fill_character() -> None:
 
 
 def test_pad_counts_display_columns() -> None:
-    assert pad("日", 4) == "日  "
+    assert pad("\u65e5", 4) == "\u65e5  "
     assert pad("\x1b[1mx\x1b[0m", 3) == "\x1b[1mx\x1b[0m  "
 
 
@@ -33,13 +33,13 @@ def test_pad_leaves_text_that_is_already_wide_enough() -> None:
 
 
 def test_fit_cuts_long_text_and_pads_short_text() -> None:
-    assert fit("hello world", 8) == "hello w…"
+    assert fit("hello world", 8) == "hello w\u2026"
     assert fit("hi", 5, align="right") == "   hi"
 
 
 def test_fit_fills_the_column_a_wide_character_could_not_use() -> None:
-    assert fit("日本語", 4) == "日… "
-    assert fit("日本語", 4, align="right", fill="_") == "_日…"
+    assert fit("\u65e5\u672c\u8a9e", 4) == "\u65e5\u2026 "
+    assert fit("\u65e5\u672c\u8a9e", 4, align="right", fill="_") == "_\u65e5\u2026"
 
 
 def test_fit_passes_ellipsis_and_side_through() -> None:
@@ -47,6 +47,6 @@ def test_fit_passes_ellipsis_and_side_through() -> None:
 
 
 def test_fit_is_always_exactly_the_width() -> None:
-    for text in ("", "a", "日本語", "\U0001f1ea\U0001f1f8x", "é" * 9):
+    for text in ("", "a", "\u65e5\u672c\u8a9e", "\U0001f1ea\U0001f1f8x", "e\u0301" * 9):
         for width in range(0, 8):
             assert display_width(fit(text, width)) == width, (text, width)

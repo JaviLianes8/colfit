@@ -20,38 +20,38 @@ def test_crlf_is_one_cluster_and_other_controls_stand_alone() -> None:
 
 
 def test_marks_stay_with_their_base() -> None:
-    assert graphemes("ẹ́x") == ["ẹ́", "x"]
+    assert graphemes("e\u0301\u0323x") == ["e\u0301\u0323", "x"]
 
 
 def test_a_mark_after_a_control_starts_its_own_cluster() -> None:
-    assert graphemes("\ń") == ["\n", "́"]
+    assert graphemes("\n\u0301") == ["\n", "\u0301"]
 
 
 def test_hangul_jamo_join_into_syllables() -> None:
-    assert graphemes("한한ᆫ") == ["한", "한ᆫ"]
+    assert graphemes("\u1112\u1161\u11ab\ud55c\u11ab") == ["\u1112\u1161\u11ab", "\ud55c\u11ab"]
 
 
 def test_spacing_marks_and_prepend_join() -> None:
-    assert graphemes("कि") == ["कि"]
-    assert graphemes("؀١") == ["؀١"]
+    assert graphemes("\u0915\u093f") == ["\u0915\u093f"]
+    assert graphemes("\u0600\u0661") == ["\u0600\u0661"]
 
 
 def test_conjunct_joins_across_the_linker() -> None:
-    assert graphemes("क्षि") == ["क्षि"]
-    assert graphemes("क्‍ष") == ["क्‍ष"]
+    assert graphemes("\u0915\u094d\u0937\u093f") == ["\u0915\u094d\u0937\u093f"]
+    assert graphemes("\u0915\u094d\u200d\u0937") == ["\u0915\u094d\u200d\u0937"]
 
 
 def test_linker_before_a_non_consonant_breaks() -> None:
-    assert graphemes("क्अ") == ["क्", "अ"]
+    assert graphemes("\u0915\u094d\u0905") == ["\u0915\u094d", "\u0905"]
 
 
 def test_emoji_zwj_sequence_is_one_cluster() -> None:
-    family = "\U0001f468‍\U0001f469‍\U0001f467"
+    family = "\U0001f468\u200d\U0001f469\u200d\U0001f467"
     assert graphemes(family + "!") == [family, "!"]
 
 
 def test_zwj_after_a_letter_does_not_join_an_emoji() -> None:
-    assert graphemes("a‍\U0001f600") == ["a‍", "\U0001f600"]
+    assert graphemes("a\u200d\U0001f600") == ["a\u200d", "\U0001f600"]
 
 
 def test_regional_indicators_pair_up_from_the_start() -> None:
