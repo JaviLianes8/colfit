@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ._check import text_arg
 from ._unicode import conjunct_class, grapheme_class
 
 _CONTROLS = frozenset("RNC")
@@ -28,7 +29,13 @@ def _joined(before: str, after: str, emoji_zwj: bool, linker: bool, odd_ri: bool
 
 
 def graphemes(text: str) -> list[str]:
-    """Split ``text`` into extended grapheme clusters."""
+    """Split ``text`` into extended grapheme clusters (UAX #29, Unicode 18.0.0).
+
+    A cluster is what a reader sees as one character: a letter with its accents, a
+    Hangul syllable, an emoji sequence, a flag. Escape sequences get no special treatment
+    here.
+    """
+    text_arg("text", text)
     clusters: list[str] = []
     start = 0
     before = ""

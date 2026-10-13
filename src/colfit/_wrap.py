@@ -25,7 +25,7 @@ def _chunks(word: list[Unit], width: int) -> list[list[Unit]]:
 
 
 def _paragraph(text: str, width: int) -> list[list[Unit]]:
-    parts = _SPACES.split(text)
+    parts = _SPACES.split(text.rstrip(" "))
     if parts[0] == "" and len(parts) > 1:
         parts = [parts[1] + parts[2], *parts[3:]]  # leading spaces are the indent
     lines: list[list[Unit]] = []

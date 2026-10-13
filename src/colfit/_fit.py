@@ -41,7 +41,8 @@ def cut(line: list[Unit], width: int, mark: str, side: str) -> str:
     marks = units(mark)
     budget = width - width_of(mark)
     if budget < 0:
-        mark, budget = _joined(marks[: take(marks, width)]), 0
+        kept = take(marks, width)
+        mark, budget = _joined(marks[:kept]) + _escapes(marks[kept:]), 0
     if side == "end":
         head, tail = take(line, budget), len(line)
     elif side == "start":

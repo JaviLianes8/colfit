@@ -10,6 +10,7 @@ from ._unicode import char_width, conjunct_class, grapheme_class, has_variations
 _ZWJ = "\u200d"
 _TEXT_STYLE = "\ufe0e"
 _EMOJI_STYLE = "\ufe0f"
+_MODIFIERS = ("\U0001f3fb", "\U0001f3ff")  # the five skin tone modifiers
 
 Unit = tuple[str, int, bool]
 """A grapheme cluster or an escape sequence: ``(text, columns, is_escape)``."""
@@ -22,19 +23,20 @@ def cluster_width(cluster: str) -> int:
     emoji = grapheme_class(base) == "Q"
     previous = base
     for char in cluster[1:]:
-        if previous == _ZWJ:
-            pass  # drawn as part of the emoji or the conjunct before the joiner
-        elif char == _EMOJI_STYLE:
+        if char == _EMOJI_STYLE:
             if has_variations(base):
                 width = 2
         elif char == _TEXT_STYLE:
             if has_variations(base):
                 width = min(width, 1)
+        elif emoji:
+            if previous == _ZWJ or _MODIFIERS[0] <= char <= _MODIFIERS[1]:
+                width = 2  # a zwj or modifier sequence is drawn as one emoji (UTS #51)
         elif width and (is_spacing_mark(char) or grapheme_class(char) == "S"):
             width = 2
         elif width and conjunct_class(char) == "O":
             width = 2  # consonant, linker, consonant: one conjunct
-        elif grapheme_class(char) != "I" and not emoji:
+        elif previous != _ZWJ and grapheme_class(char) != "I":
             width += char_width(char)
         previous = char
     return width

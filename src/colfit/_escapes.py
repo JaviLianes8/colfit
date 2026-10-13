@@ -8,8 +8,8 @@ import re
 # (end of text, or a character outside these ranges) ends where it stops matching.
 _CSI = r"(?:\x1b\[|\x9b)[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]?"
 # ECMA-48 5.6: control strings end with ST. BEL also ends an OSC, as in xterm.
-_OSC = r"(?:\x1b\]|\x9d)[\s\S]*?(?:\x1b\|\x9c|\x07|\Z)"
-_STRING = r"(?:\x1b[PX^_]|[\x90\x98\x9e\x9f])[\s\S]*?(?:\x1b\|\x9c|\Z)"
+_OSC = r"(?:\x1b\]|\x9d)[\s\S]*?(?:\x1b\\|\x9c|\x07|\Z)"
+_STRING = r"(?:\x1b[PX^_]|[\x90\x98\x9e\x9f])[\s\S]*?(?:\x1b\\|\x9c|\Z)"
 # ECMA-48 5.3 and 5.5 (and ECMA-35 for intermediates): ESC, intermediates, one final byte.
 _OTHER = r"\x1b[\x20-\x2f]*[\x30-\x7e]?"
 
