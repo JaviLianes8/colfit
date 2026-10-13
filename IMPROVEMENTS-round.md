@@ -3,15 +3,15 @@
 Progress:
 - [x] Brainstorm ranked improvements (this file)
 - [x] Ground truth pinned: Unicode 18.0.0 data, UAX #29, UAX #11 and ECMA-48 in a local folder with a tracked manifest
-- [ ] Grapheme clusters (UAX #29 extended) from generated tables, never split
-- [ ] Display width per cluster: East Asian Width, marks, emoji sequences, flags, conjuncts
-- [ ] Escape sequences (ECMA-48 and the xterm OSC ending) take no columns and are never dropped
-- [ ] `truncate`, `pad`, `fit` and `wrap` with an ellipsis and documented tie rules
-- [ ] `columnize` on the new width, strict validation
-- [ ] Command line tool
+- [x] Grapheme clusters (UAX #29 extended) from generated tables, never split
+- [x] Display width per cluster: East Asian Width, marks, emoji sequences, flags, conjuncts
+- [x] Escape sequences (ECMA-48 and the xterm OSC ending) take no columns and are never dropped
+- [x] `truncate`, `pad`, `fit` and `wrap` with an ellipsis and documented tie rules
+- [x] `columnize` on the new width, strict validation
+- [x] Command line tool
 - [ ] Contracts: break test, emoji test, wcwidth oracle, properties, README examples, wheel e2e
 - [ ] Mutation run (each guard changed one at a time must fail the suite)
-- [ ] Docs and packaging: README, CHANGELOG, metadata
+- [x] Docs and packaging: README, CHANGELOG, metadata
 - [ ] Gates: ruff format, ruff check, mypy --strict, pytest
 - [ ] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean

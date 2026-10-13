@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import importlib.util
 import re
+import sys
 import unicodedata
 from collections.abc import Callable
 from pathlib import Path
@@ -120,6 +121,10 @@ def test_the_generated_tables_match_the_sources(source: Reader) -> None:
     spec = importlib.util.spec_from_file_location("gen_tables", ROOT / "scripts" / "gen_tables.py")
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    sys.dont_write_bytecode, before = True, sys.dont_write_bytecode
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = before
     expected = (ROOT / "src" / "colfit" / "_tables.py").read_text(encoding="utf-8")
     assert module.render() == expected
