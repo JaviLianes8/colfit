@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ._check import int_arg, line_arg, text_arg
+from ._escapes import pieces
 from ._fit import ELLIPSIS, cut, take
 from ._width import Unit, units
 
@@ -11,10 +12,11 @@ def _chunks(word: list[Unit], width: int) -> list[list[Unit]]:
     """Break a word too wide for a line at cluster boundaries."""
     out = []
     while word:
-        # A single cluster wider than the line still has to go somewhere: alone.
-        count = max(take(word, width), 1)
-        while count < len(word) and word[count][2]:
-            count += 1  # an escape sequence stays with the text before it
+        count = take(word, width)
+        while count < len(word) and not any(unit[1] for unit in word[:count]):
+            count += 1  # a cluster wider than the line still has to go somewhere: alone
+        if not any(unit[1] for unit in word[count:]):
+            count = len(word)  # zero-width clusters and escapes stay with the text before them
         out.append(word[:count])
         word = word[count:]
     return out
@@ -44,13 +46,22 @@ def _paragraph(text: str, width: int) -> list[list[Unit]]:
     lines: list[list[Unit]] = []
     current: list[Unit] = []
     used = 0
+    carry: list[Unit] = []
     for spaces, word in _words(units(text)):
         size = sum(unit[1] for unit in word)
+        spaces, carry = carry + spaces, []
+        if current and not size:
+            # Escape sequences alone join the line; their spaces go to the next word.
+            current += word
+            carry = spaces
+            continue
         if current and used + len(spaces) + size <= width:
             current += spaces + word
             used += len(spaces) + size
             continue
-        if current:
+        if current and not used:
+            word = current + word  # a line of escapes only joins the next word
+        elif current:
             lines.append(current)
         pieces = _chunks(word, width) if size > width else [word]
         lines += pieces[:-1]
@@ -59,6 +70,19 @@ def _paragraph(text: str, width: int) -> list[list[Unit]]:
     if current or not lines:
         lines.append(current)
     return lines
+
+
+def _paragraphs(text: str) -> list[str]:
+    """Split at line breaks outside escape sequences, as ``str.splitlines`` would."""
+    out = [""]
+    for piece, escape in pieces(text):
+        parts = [piece] if escape else piece.splitlines(keepends=True)
+        for part in parts:
+            body = part if escape else (part.splitlines() or [""])[0]
+            out[-1] += body
+            if body != part:
+                out.append("")
+    return out[:-1] if out[-1] == "" else out
 
 
 def wrap(
@@ -79,7 +103,7 @@ def wrap(
         int_arg("max_lines", max_lines, 1)
     line_arg("ellipsis", ellipsis)
     lines: list[list[Unit]] = []
-    for paragraph in text.splitlines():
+    for paragraph in _paragraphs(text):
         lines += _paragraph(line_arg("text line", paragraph), width)
     if max_lines is None or len(lines) <= max_lines:
         return ["".join(unit[0] for unit in line) for line in lines]

@@ -99,7 +99,7 @@ so every Python version gives the same answer:
 
 - East Asian Wide and Fullwidth characters take two columns; ambiguous ones take one.
 - Marks, format characters, default ignorable code points, Hangul medial and final jamo,
-  and control characters take none.
+  and control characters take none; the soft hyphen, drawn as a hyphen, takes one.
 - A ZWJ sequence or a skin tone modifier sequence on an emoji, a flag, and a single
   regional indicator take two.
 - The emoji presentation selector makes a character with variation sequences two columns;
@@ -134,7 +134,8 @@ one character one column wide raise `ValueError`.
 ## Command line
 
 `colfit` lays items out in columns, from arguments or one per line from standard input
-(empty lines are skipped). The width defaults to the terminal's.
+(empty lines are skipped). Input and output are UTF-8. The width defaults to the
+terminal's.
 
 ```
 $ colfit -w 30 apple fig cherry date elderberry kiwi lime

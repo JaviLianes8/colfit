@@ -52,14 +52,14 @@ def _parser() -> argparse.ArgumentParser:
 
 def _read_stdin() -> list[str]:
     if isinstance(sys.stdin, io.TextIOWrapper):
-        sys.stdin.reconfigure(errors="replace")
+        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
     return [line for line in sys.stdin.read().splitlines() if line]
 
 
 def _emit(text: str) -> None:
     if isinstance(sys.stdout, io.TextIOWrapper):
-        # A pipe on Windows may use a legacy code page; an item it cannot hold must not crash.
-        sys.stdout.reconfigure(errors="replace")
+        # A pipe on Windows defaults to a legacy code page, which cannot hold most text.
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     try:
         sys.stdout.write(text + "\n" if text else "")
         sys.stdout.flush()

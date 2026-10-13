@@ -72,16 +72,17 @@ def test_a_terminal_that_reports_no_width_still_gets_one_column(
     assert _run(capsys, "ab", "cd") == ["ab", "cd"]
 
 
-def test_undecodable_input_and_unencodable_output_are_replaced(
+def test_input_and_output_are_utf8_with_bad_bytes_replaced(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     out = io.BytesIO()
-    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"a\xff\n"), encoding="utf-8"))
+    stdin = io.TextIOWrapper(io.BytesIO(b"a\xff\n"), encoding="cp1252")
+    monkeypatch.setattr(sys, "stdin", stdin)
     monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="ascii", newline=""))
     assert main(["-w", "20", "--", "x", "\u65e5"]) == 0
     assert main(["-w", "20"]) == 0
     sys.stdout.flush()
-    assert out.getvalue() == b"x  ?\na?\n"
+    assert out.getvalue() == "x  \u65e5\na\ufffd\n".encode()
 
 
 @pytest.mark.parametrize(
@@ -134,6 +135,9 @@ def test_a_closed_pipe_is_quiet(monkeypatch: pytest.MonkeyPatch, tmp_path: Path,
         sink.descriptor = handle.fileno()
         monkeypatch.setattr(sys, "stdout", sink)
         assert main(["-w", "10", "a"]) == 0
+        # The descriptor now points at the null device: later writes vanish quietly.
+        os.write(handle.fileno(), b"late")
+    assert (tmp_path / "out").read_bytes() == b""
 
 
 def test_other_write_errors_are_raised(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -142,8 +146,10 @@ def test_other_write_errors_are_raised(monkeypatch: pytest.MonkeyPatch) -> None:
         main(["-w", "10", "a"])
 
 
-def test_module_entry_point_in_a_subprocess() -> None:
-    env = {**os.environ, "PYTHONPATH": str(SRC), "PYTHONIOENCODING": "utf-8"}
+def test_module_entry_point_in_a_subprocess_reads_and_writes_utf8() -> None:
+    # No encoding variables: a pipe gets the platform default unless the tool sets UTF-8.
+    env = {k: v for k, v in os.environ.items() if k not in ("PYTHONIOENCODING", "PYTHONUTF8")}
+    env["PYTHONPATH"] = str(SRC)
     result = subprocess.run(
         [sys.executable, "-m", "colfit", "-w", "12"],
         input="\u65e5\u672c\nx\ny\n".encode(),

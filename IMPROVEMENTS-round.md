@@ -45,7 +45,8 @@ Read as a user who prints tables, menus and status lines to a terminal:
   (Prepended_Concatenation_Mark), `emoji-data.txt` (Extended_Pictographic),
   `emoji-variation-sequences.txt`, and `emoji-test.txt`.
 - UAX #29 revision 49 (Unicode 18.0.0), section 3.1.1: rules GB1 to GB999 for extended
-  grapheme clusters, including GB9c (`Linker Extend* x Consonant`) and GB11 to GB13.
+  grapheme clusters, including GB9c (`\p{InCB=Linker} \p{InCB=Extend}* x \p{InCB=Consonant}`; this revision
+  no longer names the consonant before the linker) and GB11 to GB13.
 - UAX #11 revision 46: the W and F classes are wide, A is ambiguous (narrow outside East
   Asian legacy contexts), and unlisted code points take the `@missing` default ranges.
 - ECMA-48 5th edition (1991), sections 5.3 to 5.6: a control sequence is CSI, parameter bytes
@@ -69,10 +70,11 @@ Read as a user who prints tables, menus and status lines to a terminal:
 2. **Grapheme clusters.** `graphemes(text)` implements the extended rules of UAX #29 and
    passes every line of `GraphemeBreakTest.txt`. Every cut, pad and wrap works on clusters.
 3. **Width per cluster.** W and F are two columns; marks, format and default ignorable
-   characters none; a ZWJ emoji sequence, a flag and a modifier sequence two; the emoji
+   characters none (the soft hyphen one); a ZWJ emoji sequence, a flag and a modifier sequence two; the emoji
    presentation selector makes a base with variations two and the text selector one; a
    spacing mark or a conjunct makes its cluster two. Agreement with wcwidth on every code
-   point and every `emoji-test.txt` sequence is a test.
+   point and on every `emoji-test.txt` sequence except ZWJ and modifier sequences on a
+   text-default base (two columns here, after UTS #51; one in wcwidth) is a test.
 4. **Escape sequences.** CSI, the C1 forms, control strings with ST or BEL, and other escape
    sequences take no columns. When text is cut, the escape sequences of the removed part are
    kept after the ellipsis, so colours and links still close.

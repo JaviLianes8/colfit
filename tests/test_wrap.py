@@ -57,6 +57,24 @@ def test_escape_sequences_stay_with_the_text_before_them() -> None:
     assert lines == ["\x1b[1mbold", "text\x1b[0m", "here"]
 
 
+def test_escape_sequences_between_spaces_never_make_a_line_of_their_own() -> None:
+    assert wrap("abc \x1b[0m", 3) == ["abc\x1b[0m"]
+    assert wrap("\x1b[1m abc", 3) == ["\x1b[1mabc"]
+    assert wrap("abc \x1b[0m", 3, max_lines=1) == ["abc\x1b[0m"]
+    assert wrap("a \x1b[1m b", 10) == ["a\x1b[1m  b"]
+    assert wrap("\x1b[1m abcdef", 3) == ["\x1b[1mabc", "def"]
+
+
+def test_zero_width_clusters_never_make_a_line_of_their_own() -> None:
+    assert wrap("ab\u200b", 1) == ["a", "b\u200b"]
+    assert wrap("\u200b\u65e5x", 1) == ["\u200b\u65e5", "x"]
+
+
+def test_line_breaks_inside_escape_sequences_are_not_paragraphs() -> None:
+    text = "\x1b]8;;http://x\nY\x07link\x1b]8;;\x07 more"
+    assert wrap(text, 20) == [text]
+
+
 def test_max_lines_ends_the_last_kept_line_with_the_ellipsis() -> None:
     assert wrap(TEXT, 12, max_lines=2) == ["The quick", "brown fox" + E]
 

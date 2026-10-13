@@ -99,9 +99,11 @@ def test_wrap_keeps_every_unit_in_order_and_fits() -> None:
         for width in range(1, 9):
             lines = wrap(text, width)
             for line in lines:
-                wide_cluster = len([u for u in units(line) if not u[2]]) == 1
+                wide_cluster = len([u for u in units(line) if u[1]]) == 1
                 assert display_width(line) <= width or wide_cluster, (text, width, line)
                 assert line == line.rstrip(" ") or not line.strip(" ")
+                if not display_width(line):
+                    assert not display_width(text.strip(" ")), (text, width, line)
             got = [u for line in lines for u in units(line) if u[0] != " "]
             assert got == [u for u in units(text) if u[0] != " "]
 

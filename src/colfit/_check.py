@@ -37,7 +37,11 @@ def line_arg(name: str, value: object) -> str:
     for piece, escape in pieces(text):
         found = None if escape else _CONTROL.search(piece)
         if found:
-            hint = "; expand tabs first with str.expandtabs()" if found.group() == "\t" else ""
+            hint = (
+                "; expand tabs first (str.expandtabs, or expand in a shell)"
+                if found.group() == "\t"
+                else ""
+            )
             raise ValueError(
                 f"{name} must be one line without control characters, found {found.group()!r}{hint}"
             )
