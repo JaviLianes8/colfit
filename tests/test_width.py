@@ -123,6 +123,21 @@ def test_spacing_vowel_sign_makes_its_syllable_two_columns() -> None:
 
 def test_lone_spacing_mark_takes_no_columns() -> None:
     assert display_width("\u093f") == 0
+    assert display_width("\u0301\u093f") == 0
+
+
+def test_spacing_letters_add_their_own_width() -> None:
+    # Thai SARA AM is a letter that joins the cluster, drawn in its own cell.
+    assert display_width("\u0e01\u0e33\u0e33") == 3
+    assert display_width("\u65e5\u0e33") == 3
+
+
+def test_a_chain_of_conjuncts_stays_two_columns() -> None:
+    assert display_width("\u0915\u094d\u0937\u094d\u092e") == 2
+
+
+def test_an_emoji_joined_after_a_prepend_base_is_not_counted_twice() -> None:
+    assert display_width("\u0600\U0001f600\u200d\U0001f600") == 3
 
 
 def test_prepended_concatenation_mark_is_drawn() -> None:

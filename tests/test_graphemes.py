@@ -31,6 +31,13 @@ def test_hangul_jamo_join_into_syllables() -> None:
     assert graphemes("\u1112\u1161\u11ab\ud55c\u11ab") == ["\u1112\u1161\u11ab", "\ud55c\u11ab"]
 
 
+def test_hangul_syllable_types_decide_what_joins() -> None:
+    # LV takes a vowel or a final, LVT only a final; the last syllable is LVT.
+    assert graphemes("\uac1c\u1161") == ["\uac1c\u1161"]
+    assert graphemes("\uac1d\u1161") == ["\uac1d", "\u1161"]
+    assert graphemes("\ud7a3\u11a8") == ["\ud7a3\u11a8"]
+
+
 def test_spacing_marks_and_prepend_join() -> None:
     assert graphemes("\u0915\u093f") == ["\u0915\u093f"]
     assert graphemes("\u0600\u0661") == ["\u0600\u0661"]

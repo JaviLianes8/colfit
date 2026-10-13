@@ -88,6 +88,10 @@ def test_max_lines_keeps_the_escape_sequences_of_dropped_lines() -> None:
     assert lines == ["\x1b[1mon" + E + "\x1b[0m"]
 
 
+def test_max_lines_puts_dropped_escapes_after_the_ellipsis_of_a_short_line() -> None:
+    assert wrap("ab cd\x1b[0m", 3, max_lines=1) == ["ab" + E + "\x1b[0m"]
+
+
 def test_max_lines_that_are_enough_change_nothing() -> None:
     assert wrap(TEXT, 12, max_lines=4) == wrap(TEXT, 12)
 

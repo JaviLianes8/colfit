@@ -52,6 +52,7 @@ def test_unfinished_sequences_run_to_the_end() -> None:
     assert pieces("a\x1b[31") == [("a", False), ("\x1b[31", True)]
     assert pieces("a\x1b]8;;http://x") == [("a", False), ("\x1b]8;;http://x", True)]
     assert pieces("a\x1b") == [("a", False), ("\x1b", True)]
+    assert pieces("a\x1bPq#0") == [("a", False), ("\x1bPq#0", True)]
 
 
 def test_a_sequence_broken_by_a_character_out_of_range_ends_there() -> None:

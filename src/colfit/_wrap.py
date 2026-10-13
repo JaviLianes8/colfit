@@ -76,7 +76,7 @@ def _paragraphs(text: str) -> list[str]:
     """Split at line breaks outside escape sequences, as ``str.splitlines`` would."""
     out = [""]
     for piece, escape in pieces(text):
-        parts = [piece] if escape else piece.splitlines(keepends=True)
+        parts = piece.splitlines(keepends=True)
         for part in parts:
             body = part if escape else (part.splitlines() or [""])[0]
             out[-1] += body

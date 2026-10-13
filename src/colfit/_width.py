@@ -28,11 +28,11 @@ def cluster_width(cluster: str) -> int:
                 width = 2
         elif char == _TEXT_STYLE:
             if has_variations(base):
-                width = min(width, 1)
+                width = 1
         elif emoji:
             if previous == _ZWJ or _MODIFIERS[0] <= char <= _MODIFIERS[1]:
                 width = 2  # a zwj or modifier sequence is drawn as one emoji (UTS #51)
-        elif width and (is_spacing_mark(char) or grapheme_class(char) == "S"):
+        elif width and is_spacing_mark(char):
             width = 2
         elif width and conjunct_class(char) == "O":
             width = 2  # consonant, linker, consonant: one conjunct
