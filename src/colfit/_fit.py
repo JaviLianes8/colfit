@@ -76,7 +76,7 @@ def truncate(text: str, width: int, *, ellipsis: str = ELLIPSIS, side: Side = "e
 def _fill_arg(fill: object) -> str:
     text = line_arg("fill", fill)
     found = units(text)
-    if len(found) != 1 or found[0][1] != 1 or found[0][2]:
+    if len(found) != 1 or found[0][1] != 1:
         raise ValueError(f"fill must be one character one column wide, got {fill!r}")
     return text
 
@@ -108,5 +108,4 @@ def fit(
     fill: str = " ",
 ) -> str:
     """Return ``text`` in exactly ``width`` columns: cut as `truncate`, then padded as `pad`."""
-    _fill_arg(fill)
     return pad(truncate(text, width, ellipsis=ellipsis, side=side), width, align=align, fill=fill)

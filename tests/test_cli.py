@@ -65,6 +65,25 @@ def test_width_defaults_to_the_terminal(
     assert _run(capsys, "ab", "cd", "ef") == ["ab  cd", "ef"]
 
 
+def test_a_terminal_that_reports_no_width_still_gets_one_column(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("shutil.get_terminal_size", lambda: os.terminal_size((0, 0)))
+    assert _run(capsys, "ab", "cd") == ["ab", "cd"]
+
+
+def test_undecodable_input_and_unencodable_output_are_replaced(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    out = io.BytesIO()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"a\xff\n"), encoding="utf-8"))
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="ascii", newline=""))
+    assert main(["-w", "20", "--", "x", "\u65e5"]) == 0
+    assert main(["-w", "20"]) == 0
+    sys.stdout.flush()
+    assert out.getvalue() == b"x  ?\na?\n"
+
+
 @pytest.mark.parametrize(
     ("argv", "message"),
     [

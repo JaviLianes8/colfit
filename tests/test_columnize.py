@@ -35,6 +35,11 @@ def test_column_order_fills_top_to_bottom() -> None:
     assert columnize(["1", "2", "3", "4", "5"], width=4, order="columns") == "1  4\n2  5\n3"
 
 
+def test_one_column_items_use_every_column_that_fits() -> None:
+    assert columnize(list("abcd"), width=10) == "a  b  c  d"
+    assert columnize(list("abcd"), width=9) == "a  b  c\nd"
+
+
 def test_exact_fit_is_accepted_and_one_more_column_is_not() -> None:
     assert columnize(["ab", "cd", "ef"], width=10) == "ab  cd  ef"
     assert columnize(["ab", "cd", "ef"], width=9) == "ab  cd\nef"
