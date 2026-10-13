@@ -2,13 +2,9 @@
 
 from __future__ import annotations
 
-import re
-
 from ._check import int_arg, line_arg, text_arg
 from ._fit import ELLIPSIS, cut, take
 from ._width import Unit, units
-
-_SPACES = re.compile(r"( +)")
 
 
 def _chunks(word: list[Unit], width: int) -> list[list[Unit]]:
@@ -24,21 +20,35 @@ def _chunks(word: list[Unit], width: int) -> list[list[Unit]]:
     return out
 
 
+def _words(line: list[Unit]) -> list[tuple[list[Unit], list[Unit]]]:
+    """(spaces before, word) pairs. A space with a mark on it is part of a word."""
+    out: list[tuple[list[Unit], list[Unit]]] = []
+    spaces: list[Unit] = []
+    word: list[Unit] = []
+    for unit in line:
+        if unit[0] == " ":
+            if word:
+                out.append((spaces, word))
+                spaces, word = [], []
+            spaces.append(unit)
+        else:
+            word.append(unit)
+    if word:
+        out.append((spaces, word))
+    if out and out[0][0]:
+        out[0] = ([], out[0][0] + out[0][1])  # leading spaces are the indent
+    return out
+
+
 def _paragraph(text: str, width: int) -> list[list[Unit]]:
-    parts = _SPACES.split(text.rstrip(" "))
-    if parts[0] == "" and len(parts) > 1:
-        parts = [parts[1] + parts[2], *parts[3:]]  # leading spaces are the indent
     lines: list[list[Unit]] = []
     current: list[Unit] = []
     used = 0
-    for index in range(0, len(parts), 2):
-        word = units(parts[index])
+    for spaces, word in _words(units(text)):
         size = sum(unit[1] for unit in word)
-        space = units(parts[index - 1]) if index else []
-        gap = sum(unit[1] for unit in space)
-        if current and used + gap + size <= width:
-            current += space + word
-            used += gap + size
+        if current and used + len(spaces) + size <= width:
+            current += spaces + word
+            used += len(spaces) + size
             continue
         if current:
             lines.append(current)
