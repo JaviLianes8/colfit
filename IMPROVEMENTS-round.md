@@ -9,12 +9,12 @@ Progress:
 - [x] `truncate`, `pad`, `fit` and `wrap` with an ellipsis and documented tie rules
 - [x] `columnize` on the new width, strict validation
 - [x] Command line tool
-- [ ] Contracts: break test, emoji test, wcwidth oracle, properties, README examples, wheel e2e
-- [ ] Mutation run (each guard changed one at a time must fail the suite)
+- [x] Contracts: break test, emoji test, wcwidth oracle, properties, README examples, wheel e2e
+- [x] Mutation run (each guard changed one at a time must fail the suite)
 - [x] Docs and packaging: README, CHANGELOG, metadata
-- [ ] Gates: ruff format, ruff check, mypy --strict, pytest
-- [ ] Independent review findings fixed with regression tests
-- [ ] Pull request opened, guard clean
+- [x] Gates: ruff format, ruff check, mypy --strict, pytest
+- [x] Independent review findings fixed with regression tests
+- [x] Pull request opened, guard clean
 
 ## Starting point
 
@@ -98,3 +98,30 @@ Left out on purpose: line breaking by UAX #14 (CJK text without spaces breaks at
 ambiguous width as two columns (a terminal setting, not data), tab expansion (rejected with
 a pointer to `str.expandtabs`), cursor movement sequences (counted as zero like every escape),
 re-applying styles on each wrapped line.
+
+## Verification
+
+- Gates on a second machine (Python 3.14, fresh clone, sources fetched, `COLFIT_E2E=1`):
+  `ruff format --check .`, `ruff check .`, `mypy --strict src`, `mypy --strict src tests`
+  and `pytest` each exit 0; 290 passed, nothing skipped. The wheel test builds the wheel and
+  the sdist, checks that no fetched source ships, installs the wheel in a fresh venv and
+  drives the API, the `colfit` script and `python -m colfit` from an empty folder.
+- Ground truth: all 853 lines of `GraphemeBreakTest.txt`, every fully qualified emoji and
+  component of `emoji-test.txt`, every visible W, F and narrow code point of
+  `EastAsianWidth.txt`, the UAX #29 rule texts, and a byte-for-byte regeneration of
+  `_tables.py` from the sources.
+- Oracle: wcwidth 0.9.2 agrees on every code point, on generated syllables of six scripts
+  with conjuncts, Hangul, styled and linked text, and on every emoji sequence except ZWJ and
+  modifier sequences on a text-default base (two columns here, one there).
+- Mutations: 95 mutants, one at a time, bytecode cache disabled and purged, 240 s timeout,
+  baseline green before and after; all killed. A first run left 10 survivors: Hangul syllable
+  type ranges, an unfinished control string, the order of dropped escapes after the
+  ellipsis, conjunct chains and an emoji after a prepend base got tests; a redundant text
+  selector clamp, a redundant spacing mark class check (dropped, which also matches wcwidth
+  for spacing letters) and a redundant escape branch were simplified.
+- Independent review: 8 findings. Fixed with regression tests: stdin and stdout of the
+  command line now UTF-8 (a pipe on Windows used the legacy code page), escape-only and
+  zero-width words no longer make lines of their own or count against `max_lines`, line
+  breaks inside escape sequences no longer split paragraphs, a stronger closed-pipe test; the
+  soft hyphen exception, the GB9c wording, the wcwidth emoji difference and the tab hint were
+  corrected in the docs.
