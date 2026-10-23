@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+import colfit
 from colfit._cli import main
 
 SRC = Path(__file__).resolve().parents[1] / "src"
@@ -110,7 +111,7 @@ def test_tabs_from_stdin_are_rejected(
 def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit):
         main(["--version"])
-    assert capsys.readouterr().out.startswith("colfit 0.")
+    assert capsys.readouterr().out == f"colfit {colfit.__version__}\n"
 
 
 class _ClosedPipe(io.StringIO):

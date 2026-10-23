@@ -3,22 +3,29 @@
 from __future__ import annotations
 
 from ._check import int_arg, line_arg, text_arg
+from ._cut import cut
 from ._escapes import pieces
-from ._fit import ELLIPSIS, cut, take
-from ._width import Unit, units
+from ._fit import ELLIPSIS
+from ._width import Unit, escapes_of, units
 
 
 def _chunks(word: list[Unit], width: int) -> list[list[Unit]]:
     """Break a word too wide for a line at cluster boundaries."""
     out = []
-    while word:
-        count = take(word, width)
-        while count < len(word) and not any(unit[1] for unit in word[:count]):
-            count += 1  # a cluster wider than the line still has to go somewhere: alone
-        if not any(unit[1] for unit in word[count:]):
-            count = len(word)  # zero-width clusters and escapes stay with the text before them
-        out.append(word[:count])
-        word = word[count:]
+    last = max((index for index, unit in enumerate(word) if unit[1]), default=-1)
+    start = 0
+    while start < len(word):
+        end, used = start, 0
+        while end < len(word) and used + word[end][1] <= width:
+            used += word[end][1]
+            end += 1
+        while end < len(word) and not used:
+            used += word[end][1]  # a cluster wider than the line still has to go somewhere
+            end += 1
+        if end > last:
+            end = len(word)  # zero-width clusters and escapes stay with the text before them
+        out.append(word[start:end])
+        start = end
     return out
 
 
@@ -37,8 +44,6 @@ def _words(line: list[Unit]) -> list[tuple[list[Unit], list[Unit]]]:
             word.append(unit)
     if word:
         out.append((spaces, word))
-    if out and out[0][0]:
-        out[0] = ([], out[0][0] + out[0][1])  # leading spaces are the indent
     return out
 
 
@@ -49,7 +54,14 @@ def _paragraph(text: str, width: int) -> list[list[Unit]]:
     carry: list[Unit] = []
     for spaces, word in _words(units(text)):
         size = sum(unit[1] for unit in word)
-        spaces, carry = carry + spaces, []
+        if spaces and not current and not lines:  # the indent of the paragraph
+            if size <= width < len(spaces) + size:
+                spaces = []  # the first word fits a line, but not after the indent
+            else:
+                word, size, spaces = spaces + word, size + len(spaces), []
+        if carry:
+            carry += spaces  # in place: a long run of escapes between spaces stays linear
+            spaces, carry = carry, []
         if current and not size:
             # Escape sequences alone join the line; their spaces go to the next word.
             current += word
@@ -74,28 +86,44 @@ def _paragraph(text: str, width: int) -> list[list[Unit]]:
 
 def _paragraphs(text: str) -> list[str]:
     """Split at line breaks outside escape sequences, as ``str.splitlines`` would."""
-    out = [""]
+    out: list[str] = []
+    current: list[str] = []  # joined once per paragraph, so many pieces stay linear
     for piece, escape in pieces(text):
-        parts = piece.splitlines(keepends=True)
-        for part in parts:
+        for part in piece.splitlines(keepends=True):
             body = part if escape else (part.splitlines() or [""])[0]
-            out[-1] += body
+            current.append(body)
             if body != part:
-                out.append("")
-    return out[:-1] if out[-1] == "" else out
+                out.append("".join(current))
+                current = []
+    if any(current):
+        out.append("".join(current))
+    return out
 
 
 def wrap(
     text: str, width: int, *, max_lines: int | None = None, ellipsis: str = ELLIPSIS
 ) -> list[str]:
-    """Wrap ``text`` into lines of at most ``width`` columns.
+    r"""Wrap ``text`` into lines of at most ``width`` columns.
 
-    Lines break at spaces; a word wider than ``width`` breaks between grapheme clusters.
-    Line breaks in ``text`` start new paragraphs, and leading spaces of a paragraph are
-    kept as its indent. A single cluster wider than ``width`` gets a line of its own, the
-    only case where a line is wider. With ``max_lines``, the lines after it are dropped
-    and the last kept line ends with ``ellipsis``, followed by the escape sequences of
-    the dropped text.
+    Lines break at spaces (U+0020 only); a word wider than ``width`` breaks between
+    grapheme clusters. Line breaks in ``text`` start new paragraphs. The leading spaces of
+    a paragraph are its indent: kept when the first word fits after them, dropped when the
+    word fits a line but not after them, and kept before a word that has to break anyway.
+    A single cluster wider than ``width`` gets a line of its own, the only case where a
+    line is wider. With ``max_lines``, the lines after it are dropped and the last kept
+    line ends with ``ellipsis``, followed by the escape sequences of the dropped text.
+
+    >>> wrap("The quick brown fox jumps", 10)
+    ['The quick', 'brown fox', 'jumps']
+    >>> wrap("The quick brown fox jumps", 10, max_lines=2, ellipsis="...")
+    ['The quick', 'brown f...']
+    >>> wrap("  Indented first line\nsecond paragraph", 12)
+    ['  Indented', 'first line', 'second', 'paragraph']
+
+    Raises ``TypeError`` for arguments of the wrong type and ``ValueError`` for a
+    ``width`` or ``max_lines`` below 1, or a line of ``text`` (or the ``ellipsis``)
+    holding a control character outside an escape sequence, such as a tab, or ending
+    inside an unfinished one.
     """
     text_arg("text", text)
     int_arg("width", width, 1)
@@ -107,7 +135,7 @@ def wrap(
         lines += _paragraph(line_arg("text line", paragraph), width)
     if max_lines is None or len(lines) <= max_lines:
         return ["".join(unit[0] for unit in line) for line in lines]
-    dropped = [unit for line in lines[max_lines:] for unit in line if unit[2]]
+    dropped = [(found, 0, True) for line in lines[max_lines:] for found in escapes_of(line)]
     # An empty unit too wide for any budget forces the cut after the last kept line.
     last = cut([*lines[max_lines - 1], ("", width + 1, False), *dropped], width, ellipsis, "end")
     return ["".join(unit[0] for unit in line) for line in lines[: max_lines - 1]] + [last]

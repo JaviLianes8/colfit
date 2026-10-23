@@ -10,9 +10,9 @@ import unicodedata
 from collections.abc import Callable
 
 import pytest
-from conftest import code_points
+from conftest import LETTERS, STANDALONE_SPACING_MARKS, code_points
 
-from colfit import display_width
+from colfit import display_width, pad, wrap
 from colfit._unicode import conjunct_class
 
 wcwidth = pytest.importorskip("wcwidth")
@@ -102,6 +102,88 @@ def test_styled_and_linked_text_agrees() -> None:
         "\x1b]8;;https://example.com\x07link\x1b]8;;\x07",
         "\x1b[38;5;208m\u65e5\u672c\x1b[39m",
         "\x1b(Bplain",
+        "\U0001f1ea\x1b[0m\U0001f1f8",
+        "\U0001f44d\x1b[31m\U0001f3fd",
+        "a\u1000\x1b[31m\u102c",
     ]
     for text in samples:
         assert display_width(text) == _reference(text), text
+
+
+WORD_PIECES = [
+    "a",
+    "bc",
+    "\u65e5",
+    "\uff21",
+    "e\u0301",
+    "\U0001f44d\U0001f3fd",
+    "\u0915\u094d\u0937\u093f",
+    "\ud55c",
+]
+
+
+def _word(rng: random.Random, width: int) -> str:
+    word = rng.choice(WORD_PIECES[:2])
+    while rng.random() < 0.7:
+        piece = rng.choice(WORD_PIECES)
+        if display_width(word + piece) > width:
+            break
+        word += piece
+    return word
+
+
+def test_wrap_agrees_with_wcwidth_wrap_on_words_that_fit() -> None:
+    # Words no wider than the line and an indent no wider than the line; wcwidth.wrap
+    # keeps the textwrap rules and measures with its own tables.
+    rng = random.Random(29)
+    for _ in range(8000):
+        width = rng.randint(2, 24)
+        words = [_word(rng, width) for _ in range(rng.randint(1, 10))]
+        text = " " * rng.randint(0, width) + " ".join(words)
+        assert wrap(text, width) == wcwidth.wrap(text, width, break_on_hyphens=False), text
+
+
+def test_left_and_right_padding_agree_with_wcwidth() -> None:
+    # wcwidth.center follows str.center, which puts the odd column on the left for odd
+    # widths; pad follows format(), which always puts it on the right.
+    rng = random.Random(31)
+    for _ in range(8000):
+        text = "".join(rng.choices([*WORD_PIECES, " "], k=rng.randint(0, 6)))
+        width = rng.randint(0, 20)
+        assert pad(text, width) == wcwidth.ljust(text, width)
+        assert pad(text, width, align="right") == wcwidth.rjust(text, width)
+
+
+@pytest.mark.parametrize("code", STANDALONE_SPACING_MARKS, ids=lambda code: f"{code:04X}")
+def test_spacing_marks_in_clusters_of_their_own_agree(code: int) -> None:
+    text = LETTERS[code >> 8] + chr(code)
+    assert display_width(text) == _reference(text) == 2
+
+
+# Each difference the README lists: (text, colfit, wcwidth).
+DIFFERENCES = [
+    ("\u00a9\u200d\u00a9", 2, 1),  # a zwj sequence on text default bases
+    ("\u00a9\U0001f3fd", 2, 1),  # a skin tone modifier on a text default base
+    ("\u0c95\u0ccd\u0c95\u0cbe", 3, 2),  # Kannada: the virama is no linker
+    ("\u0a28\u0a4d\u0a39\u0a3e", 3, 2),  # Gurmukhi
+    ("\u0d9a\u0dca\u0dc2\u0dcf", 3, 2),  # Sinhala
+    ("\u0b95\u0bcd\u0b95\u0bbe", 3, 2),  # Tamil
+    ("\u1b13\u1b44", 2, 1),  # Balinese: a spacing virama
+    ("\U00011315\U0001134d", 2, 1),  # Grantha
+    ("\u0915\u094d\u0915\u094d,", 3, 2),  # a final virama: two columns at most with what follows
+    ("\u0d28\u0d4d\u0d28\u0d4d \u0d2a", 4, 3),  # Malayalam, before a space
+    ("\u091c\u0917\u0924\u094d\U0001f600", 5, 4),  # a one-column syllable before an emoji
+    ("\u0915\u094d\uac00", 3, 2),  # and before a Hangul syllable
+    ("\u0c15\u0c3e\u0c4d\u65e5", 3, 2),  # Telugu, before a wide character
+]
+
+
+@pytest.mark.parametrize(("text", "ours", "theirs"), DIFFERENCES)
+def test_the_differences_the_readme_lists(text: str, ours: int, theirs: int) -> None:
+    assert (display_width(text), _reference(text)) == (ours, theirs)
+
+
+def test_wcwidth_parsing_escapes_splits_a_cluster_where_colfit_does_not() -> None:
+    # With control_codes="parse" (its default) an escape inside a cluster splits it.
+    text = "\U0001f1ea\x1b[0m\U0001f1f8"
+    assert (display_width(text), _reference(text), wcwidth.width(text)) == (2, 2, 4)

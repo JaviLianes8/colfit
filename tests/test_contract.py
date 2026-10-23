@@ -25,6 +25,11 @@ def test_all_lists_exactly_the_public_api() -> None:
     assert sorted(colfit.__all__) == sorted(PUBLIC_API)
 
 
+def test_the_package_has_no_other_public_names() -> None:
+    public = sorted(name for name in dir(colfit) if not name.startswith("_"))
+    assert public == sorted(PUBLIC_API)
+
+
 def test_every_exported_name_resolves() -> None:
     for name in colfit.__all__:
         assert hasattr(colfit, name)

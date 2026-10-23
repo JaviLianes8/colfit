@@ -18,8 +18,9 @@ def _readme() -> str:
     return (ROOT / "README.md").read_text(encoding="utf-8")
 
 
-def _blocks() -> list[str]:
-    return re.findall(r"```python\n(.*?)```", _readme(), flags=re.DOTALL)
+def _blocks(name: str = "README.md") -> list[str]:
+    text = (ROOT / name).read_text(encoding="utf-8")
+    return re.findall(r"```python\n(.*?)```", text, flags=re.DOTALL)
 
 
 def _expected(block: str) -> list[str]:
@@ -47,6 +48,30 @@ def test_each_example_prints_what_its_comments_say(
     printed = capsys.readouterr().out.splitlines()
     assert printed == _expected(block)
     assert len(printed) >= 1
+
+
+def test_the_guide_has_its_six_examples() -> None:
+    assert len(_blocks("GUIDE.md")) == 6
+
+
+@pytest.mark.parametrize("index", range(6))
+def test_each_guide_example_prints_what_its_comments_say(
+    index: int, capsys: pytest.CaptureFixture[str]
+) -> None:
+    block = _blocks("GUIDE.md")[index]
+    exec(compile(block, "GUIDE.md", "exec"), {"__name__": "guide"})
+    printed = capsys.readouterr().out.splitlines()
+    assert printed == _expected(block)
+    assert len(printed) >= 2
+
+
+def test_readme_links_are_absolute_and_show_the_badge() -> None:
+    targets = re.findall(r"\]\(([^)]*)\)", _readme())
+    assert targets
+    assert all(target.startswith("https://") for target in targets), targets
+    assert "(https://lianes8studio.com/certified)" in _readme()
+    for name in ("GUIDE.md", "CHANGELOG.md", "LICENSE"):
+        assert f"https://github.com/JaviLianes8/colfit/blob/main/{name}" in _readme()
 
 
 def test_the_command_line_examples_match_the_tool(capsys: pytest.CaptureFixture[str]) -> None:

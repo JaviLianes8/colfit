@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from colfit import display_width, truncate
+from colfit import display_width, pad, truncate
 from colfit._escapes import pieces, strip
 
 SEQUENCES = [
@@ -69,6 +69,35 @@ def test_strip_removes_only_escape_sequences() -> None:
 
 def test_c1_characters_that_open_nothing_are_plain_text() -> None:
     assert pieces("a\x85b") == [("a\x85b", False)]
+
+
+OPENERS = ["\x1b]0;", "\x1bP", "\x1bX", "\x1b^", "\x1b_", "\x9d0;", "\x90", "\x9e", "\x9f"]
+
+
+@pytest.mark.parametrize("opener", OPENERS)
+def test_a_control_string_ends_before_an_esc_that_does_not_start_st(opener: str) -> None:
+    # As in the DEC parser (vt100.net): ESC starts a new sequence wherever it appears.
+    text = opener + "junk\x1b[31mred\x1b[0m"
+    assert pieces(text) == [
+        (opener + "junk", True),
+        ("\x1b[31m", True),
+        ("red", False),
+        ("\x1b[0m", True),
+    ]
+    assert display_width(text) == 3
+    assert pad(text, 5) == text + "  "
+
+
+@pytest.mark.parametrize("cancel", ["\x18", "\x1a"])
+@pytest.mark.parametrize("opener", OPENERS)
+def test_can_and_sub_cut_a_control_string_short(opener: str, cancel: str) -> None:
+    assert pieces(opener + "t" + cancel + "ab") == [(opener + "t", True), (cancel + "ab", False)]
+    assert display_width(opener + "t" + cancel + "ab") == 2
+
+
+@pytest.mark.parametrize("opener", OPENERS)
+def test_st_still_ends_a_control_string(opener: str) -> None:
+    assert pieces(opener + "x\x1b\\ab") == [(opener + "x\x1b\\", True), ("ab", False)]
 
 
 def test_cut_keeps_the_sequences_of_the_removed_text_after_the_ellipsis() -> None:
