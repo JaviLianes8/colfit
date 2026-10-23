@@ -14,8 +14,8 @@ Progress:
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15), final run; PR #3 and trace guard CLEAN
-- [x] QA rounds 1 to 5: every finding fixed (e97dc62, b105d51, 9b1342f, 1e15265, 8f2c1ad),
-  none disputed
+- [x] QA rounds 1 to 6: every finding fixed (e97dc62, b105d51, 9b1342f, 1e15265, 8f2c1ad,
+  a5f685d), none disputed
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -146,19 +146,19 @@ below): 19 failed on 1c0a3b7, all pass on b105d51, and the four lens e survivors
 | d F1b | `columnize` refuses a `gap` above `sys.maxsize` with `ValueError`; the `colfit` command reports it, and a `MemoryError`, with exit status 2; docstring, GUIDE, README and CHANGELOG updated |
 | e E2-1 to E2-4 | Contracts: Thai and Lao AM refused as a first character, stdin read with POSIX line ends too, escapes kept when no visible cluster can stay, a fill joining the end of the text for each `align` |
 
-## QA rounds 3 to 5 (item 19)
+## QA rounds 3 to 6 (item 19)
 
 Round 3: lenses b, d and e reported on f64a51f: b N2 and N3, d F1b and e's four round 2
 mutants confirmed fixed, and the first five rows below, fixed in 9b1342f. The N1 contract
 in `tests/test_contract_qa3.py` failed on f64a51f; lens e's five survivors (C09, C13, C16,
 C20, W12) and W13 (the new rule cut to spacing marks), each applied alone to 9b1342f, are
-killed by that file. W11 is equivalent: no prepended character takes zero columns. Round
-4: lenses d and e reported on 537fc3e: d N1 and e's round 3 mutants confirmed fixed, and
-the next two rows, fixed in 1e15265 with contracts in `tests/test_contract_qa4.py`. Round
-5: lens e reported on 9a652eb: every round 4 finding confirmed fixed, and the last three
-rows, closed in 8f2c1ad by `tests/test_contract_qa5.py` with no behaviour change; each of
-the six survivors (S05 to S09, S13), applied alone to 9a652eb, fails that file (two to
-four tests each).
+killed by that file. W11 is equivalent: no prepended character takes zero columns. Round 4
+(lenses d and e, 537fc3e): d N1 and e's round 3 mutants confirmed fixed, and the next two
+rows, fixed in 1e15265 with contracts in `tests/test_contract_qa4.py`. Round 5 (lens e,
+9a652eb): round 4 confirmed fixed, the E5 rows closed in 8f2c1ad by `test_contract_qa5.py`
+(S05 to S09 and S13, each alone on 9a652eb, fail two to four of its tests). Round 6 (lens
+e, 7238d59): round 5 confirmed fixed, P01 equivalent (prepended characters are one column
+wide), E6-1 closed in a5f685d by `test_contract_qa6.py` (P10 alone fails all 30).
 
 | Finding | What changed |
 | --- | --- |
@@ -169,9 +169,9 @@ four tests each).
 | e E3-1 to E3-5 | Contracts: 500 mixed items equal the plain search in both orders; the fallback with `gap=1` takes 30,665 columns at width 91,994; skewed widths in column order give the 11 rows of a search with no limit; a gap of 4,000 or 5,000 digits is quoted in at most 100 characters; U+102C U+0E33 measures 1, as in `wcwidth` |
 | d Q1, e E4-1 | A ZWJ right after a visible prepended character is one more mark on it (`_is_mark`), so a spacing mark after it widens it whatever the order of the marks: `"\u0600\u200d\u093e"` measures 2, as `"a\u200d\u093e"` does and as in 0.2.0. Its contracts failed on 537fc3e; 40,000 seeded tails of marks and ZWJ after the 27 prepended characters now measure as after `a`; GUIDE and CHANGELOG updated |
 | e E4-2 to E4-4 | Contracts, each killing its survivor applied alone to 1e15265: U+102B and U+102C (Mc, not SpacingMark) after U+0600 measure 2 (N02); Thai and Lao AM after U+0600, before a vowel sign or a virama and consonant, measure as after `a` (N04); two to four prepended characters before nonspacing marks or a ZWJ count once each (N13) |
-| e E5-1 | Contracts: a regional indicator or a flag after U+0600 or U+0D4E keeps its two columns (3, and 4 after two prepended characters) |
-| e E5-2 | Contracts: a Hangul LV or LVT syllable or a leading jamo after U+0600 or U+0D4E, before a vowel sign or a virama and consonant, measures 3: 1 plus its own 2 |
+| e E5-1, E5-2 | Contracts: a regional indicator or a flag after U+0600 or U+0D4E keeps its two columns (3, and 4 after two prepended characters); a Hangul LV or LVT syllable or a leading jamo there, before a vowel sign or a virama and consonant, measures 3: 1 plus its own 2 |
 | e E5-3 | Value kept at 1 and pinned: a medial or final jamo is a letter (gc Lo), a base in UAX #29, not Extend, so after a prepended character it is the zero-width base of the rest, as alone (U+1161 U+093E measures 0, U+0600 U+1161 U+093E measures 1); a ZWJ there still gives 2. The code comment and the GUIDE now say any jamo is a base |
+| e E6-1 | Value kept at 3 and pinned: the five Kirat Rai vowel signs (U+16D63, U+16D67 to U+16D6A) are letters (gc Lo, Grapheme_Cluster_Break=V) of one column, so after U+0600 or U+0D4E each is the base: before U+093E, U+094D U+0915 or U+0903 it measures 2 alone and 3 after the prepended character. The GUIDE now says a letter after it is a base |
 
 ## Disputed findings
 
@@ -196,5 +196,5 @@ Each run on another machine from a fresh clone (CPython 3.14.2, fetched sources,
 `mypy --strict src`, `mypy --strict src tests` and `pytest` exit 0, one skip there (no `ls`;
 `test_reference_programs.py` passes on this PC). `pytest` passed: 501 at 5af1a32, 653 at
 5faad35 (QA round 1), 684 at b105d51 (round 2), 698 at 9b1342f (round 3), 711 at 1e15265
-(round 4), 731 at 8f2c1ad (round 5). Each record commit changes only this report; the same
-five ran on its tree before it was pushed: all exit 0.
+(round 4), 731 at 8f2c1ad (round 5), 761 at a5f685d (round 6). Each record commit changes
+only this report; the same five ran on its tree before it was pushed: all exit 0.
