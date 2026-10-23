@@ -14,10 +14,11 @@ from Unicode 18.0.0, so every Python version gives the same answer.
 - An emoji ZWJ sequence (a ZWJ between two pictographs), a flag, a single regional
   indicator and a skin tone modifier after any emoji take two. The modifier rule is wider
   than UTS #51, which shows a swatch after a base that has no skin tone form.
-- The emoji presentation selector (U+FE0F) makes a character with variation sequences two
-  columns; the text presentation selector (U+FE0E) makes it one.
-- A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable
-  two, and so does a spacing mark alone in its cluster (Myanmar, Tai Tham, Ahom) or after
+- A presentation selector anywhere in a cluster (after marks or a ZWJ too) acts on its base
+  only: on one with variation sequences, U+FE0F makes it two columns and U+FE0E one.
+- A spacing vowel sign or a conjunct (consonant, linker, consonant, and any more after a
+  linker or a ZWJ) makes its syllable two, and so does a spacing mark alone in its cluster
+  (Myanmar, Tai Tham, Ahom, or after a soft hyphen, where other marks take none) or after
   a prepended character with no other base (U+0600, U+0D4E; a letter after it, even a jamo,
   is a base), with any marks or ZWJ between; else a prepended character adds its own width.
 - Escape sequences take none and never split a cluster (see below).
@@ -112,8 +113,7 @@ print("[" + fit("\u65e5\u672c\u8a9e", 4, ellipsis="") + "]")
 - The leading spaces of a paragraph are its indent. They are kept when the first word fits
   after them, dropped when the word fits a line but not after them, and kept before a
   word that has to break anyway, as `textwrap` does.
-- With `max_lines`, the last kept line ends with the ellipsis and the escape sequences
-  of the dropped lines.
+- With `max_lines`, the last line kept ends with the ellipsis and the escapes of the dropped lines.
 
 ```python
 from colfit import wrap
