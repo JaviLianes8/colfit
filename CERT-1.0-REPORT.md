@@ -16,6 +16,7 @@ Progress:
 - [x] Packaging, e2e, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15), final run
 - [x] PR #3 and trace guard CLEAN
+- [x] QA round 1: every finding fixed (e97dc62), none disputed
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -36,7 +37,7 @@ Progress:
 | 11 | README and `twine check` | PASS: `twine check --strict` in the e2e test, absolute links, badge |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-23 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS |
-| 14 | sdist and wheel contents | PASS: asserted file by file in `tests/test_e2e_wheel.py` |
+| 14 | sdist and wheel contents | PASS: asserted file by file in `tests/test_e2e_wheel.py`; the Unicode License v3 notice ships (QA round 1) |
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 18 | Contracts bite (mutations) | PASS: 41 author mutants, 37 killed at once, 3 killed after new contracts, 1 equivalent |
 
@@ -44,66 +45,44 @@ Items 16, 17 and 19 belong to the independent reviewer, the maintainer and the Q
 
 ## Baseline on 0.2.0 (before any change)
 
-Fresh clone at 77be5c8 on another machine (CPython 3.14.2, fetched sources and the pinned
-`wcwidth` present): `ruff format --check .`, `ruff check .` and `mypy --strict src tests`
-exit 0; `pytest` 289 passed, 1 skipped (the installed-wheel test, opt-in). No doctests.
-
-Defects found in 0.2.0, each reproduced and now covered by a test:
-
-- `wrap("  abcdefgh", 8)` split a word that fits a line because of its indent.
-- A text ending inside an unfinished escape sequence (`"ab\x1b]8;;url"`) passed `pad`,
-  `fit` and `columnize`, and the padding or the next cell vanished into the sequence:
-  `fit` returned text narrower than its width.
-- `wrap` took time proportional to the square of a long word (80,000 characters at width
-  1: 13.5 s; now 0.13 s).
-- `columnize` built every candidate layout in full, so wide widths took far longer.
-- `side=1` raised `ValueError`, unlike every other wrong type; a `side`, `align` or `fill`
-  of a megabyte went whole into the message; `-(10**5000)` as a width broke the message.
-- The package exposed an `annotations` name; no docstring had an example; the README
-  linked LICENSE relatively; there was no GUIDE.
+Fresh clone at 77be5c8 on another machine (CPython 3.14.2, sources and `wcwidth` present):
+ruff, mypy exit 0; `pytest` 289 passed, 1 skipped (the opt-in wheel test); no doctests.
+Defects found, each now covered by a test: `wrap("  abcdefgh", 8)` split a word that fits
+a line because of its indent; a text ending inside an unfinished escape sequence passed
+`pad`, `fit` and `columnize`, and what followed vanished into it; `wrap` was quadratic in
+a long word (80,000 characters at width 1: 13.5 s, now 0.13 s); `columnize` built every
+candidate layout; `side=1` raised `ValueError`; huge arguments went whole into messages;
+an `annotations` name leaked; no docstring had an example; no GUIDE.
 
 ## API review (item 1)
 
-Kept: `display_width`, `graphemes`, `truncate`, `pad`, `fit`, `wrap`, `columnize`,
-`Align`, `Side`, `Order` and the `colfit` command, with their 0.2.0 signatures and
-defaults. Changed (CHANGELOG 1.0.0): the indent rule of `wrap` (now that of `textwrap`),
-`TypeError` for non-`str` choices, refusal of text ending inside an unfinished escape
-sequence, bounded messages, linear long-word breaking, a faster column search with the
-same layouts (checked against the plain search on 3,000 random cases), the stray
-`annotations` name. `release.ps1` now refuses a version already on PyPI instead of any
-upload once the name exists, and only builds from a clean tree.
+Kept: the ten public names and the `colfit` command with their 0.2.0 signatures and
+defaults. Every behaviour change is in the CHANGELOG 1.0.0 entry, the faster column search
+checked against the plain search on 3,000 random cases. `release.ps1` refuses a version
+already on PyPI and builds only from a clean tree.
 
 ## Ground truth (item 7)
 
-- Unicode 18.0.0 data (UCD, emoji), UAX #29 rev. 49, UAX #11 rev. 46 and ECMA-48 fetched
-  again live on 2026-10-23 by `scripts/fetch_sources.py`; all twelve match the sha256 in
-  `tests/sources/MANIFEST.txt`, and the tests now check that hash before reading. Nothing
-  fetched is committed or shipped. Checked: every line of `GraphemeBreakTest.txt`, every
-  fully qualified emoji of `emoji-test.txt`, the rule list of the fetched annex (GB9c is
-  the Unicode 18 form `Linker Extend* x Consonant`) and the tables rebuilt from the data.
-- `wcwidth` 0.9.2 as an independent oracle: every code point alone, the emoji test file
-  (UTS #51 differences asserted exactly), Indic and Hangul syllables, styled text; new:
-  `wrap` equals `wcwidth.wrap` on 8,000 Unicode paragraphs whose words fit a line, and
-  `pad` equals `wcwidth.ljust` and `rjust` on 8,000 strings.
-- Real programs run in this session: GNU coreutils 8.32 `ls -C` and `ls -x` on 60
-  generated folders (`ls -w W` equals `columnize(names, W - 1)`; the two ls rules behind
-  the offset, a free last screen column and three columns reserved per column, were found
-  by comparing 300 random cases); `textwrap.wrap` on 20,000 ASCII paragraphs; `format()`
-  alignment on 20,000 `pad` calls. Where they differ by design (long words, the centring
-  of `str.center`, spaces-only text) the GUIDE says so.
+- Unicode 18.0.0 data, UAX #29 rev. 49, UAX #11 rev. 46 and ECMA-48 fetched live by
+  `scripts/fetch_sources.py`, checked against `tests/sources/MANIFEST.txt` before every
+  read, never committed or shipped: every line of `GraphemeBreakTest.txt`, every fully
+  qualified emoji, the annex rule list (GB9c in its Unicode 18 form), the tables rebuilt.
+- `wcwidth` 0.9.2 as an independent oracle: every code point alone, the emoji test file,
+  Devanagari, Bengali, Gujarati, Oriya, Telugu and Malayalam syllables, the 31 spacing
+  marks UAX #29 leaves alone, Hangul, styled text, `wrap` (8,000 one-line paragraphs whose
+  words fit), `ljust` and `rjust` (8,000 strings), and each difference the README lists.
+- Real programs: GNU coreutils 8.32 `ls -C` and `ls -x` on 60 generated folders (`ls -w W`
+  equals `columnize(names, W - 1)`), `textwrap.wrap` on 20,000 ASCII paragraphs, `format()`
+  on 20,000 `pad` calls. Differences by design are in the GUIDE.
 
 ## Fuzz and hostile input (item 9)
 
-`tests/test_hostile.py`: three seeds of 3,000 strings over 40 hostile pieces (C0, C1,
-DEL, U+2028, lone surrogates, partial and 8-bit sequences, unassigned and private use
-code points): every function returns a result that keeps its width promise or raises the
-promised `ValueError` with a short message. Nine input shapes (plain, words, wide, marks
-on one base, ZWJ chains, regional indicators, unfinished and finished control strings,
-escapes, mixed) through every text function at 5,000 and 40,000 characters, and
-`columnize` with 10,000 and 80,000 items at widths 80 and 400: time grows linearly.
-`columnize` time grows with the items times `width // (gap + 1)`, as its docstring and
-the GUIDE say. `tests/test_properties.py` checks the cut, fit, wrap and column rules on
-seeded random mixes of every cluster kind.
+`tests/test_hostile.py`: 9,000 strings of 40 hostile pieces through every function (a
+result that keeps its promise, or the promised short `ValueError`) and ten input shapes at
+5,000 and 40,000 characters (linear time). `tests/test_contract_joins.py` fuzzes text,
+ellipsis and fill made of joining characters; `tests/test_contract_limits.py` times the
+adversarial shapes of QA round 1 and bounds memory; `tests/test_properties.py` checks the
+cut, fit, wrap and column rules on seeded mixes of every cluster kind.
 
 ## Author mutation round (item 18)
 
@@ -115,49 +94,90 @@ once. Of the four survivors, three (E4, W4, K3) showed missing contracts, now in
 (with an ellipsis exactly as wide as the width, cutting it keeps every unit, so the
 result is the same).
 
-| Mutant | Module | Change | Caught by |
-| --- | --- | --- | --- |
-| C1 | `_check` | width limit off by one | `test_cli.py::test_a_terminal_that_reports_no_width_still_gets_one_column` |
-| C2 | `_check` | `bool` taken as a width | `test_errors.py::test_width_must_be_an_int` |
-| C3 | `_check` | long arguments quoted in errors | `test_contract_edges.py::test_error_messages_stay_short_for_huge_arguments` |
-| C4 | `_check` | unfinished escape accepted | `test_contract_edges.py::test_text_ending_inside_an_escape_sequence_is_refused` |
-| C5 | `_check` | C1 controls and DEL accepted | `test_errors.py::test_single_line_text_rejects_control_characters` |
-| C6 | `_check` | wrong choice type gives `ValueError` | `test_contract_edges.py::test_a_choice_of_the_wrong_type_is_a_type_error` |
-| E1 | `_escapes` | BEL no longer ends an OSC | `test_contract_edges.py::test_finished_or_cut_short_sequences_are_fine` |
-| E2 | `_escapes` | CSI final byte range short by one | `test_escapes.py::test_each_sequence_is_one_escape_piece` |
-| E3 | `_escapes` | every sequence counted as open | `test_columnize.py::test_coloured_items_are_padded_by_their_visible_width` |
-| E4 | `_escapes` | 8-bit DCS skipped by the fast path | survived; now `test_contract_mutants.py::test_an_8_bit_control_string_runs_to_its_terminator_or_the_end` |
-| F1 | `_fit` | `take` keeps one cluster less | doctest of `fit` |
-| F2 | `_fit` | middle cut gives the odd column to the end | doctest of `truncate` |
-| F3 | `_fit` | ellipsis exactly as wide as the width cut | equivalent (see above) |
-| F4 | `_fit` | text exactly the width truncated | `test_properties.py::test_truncate_fits_keeps_whole_units_and_every_escape` |
-| F5 | `_fit` | centring puts the odd column on the left | doctest of `pad` |
-| F6 | `_fit` | zero-width fill accepted | `test_errors.py::test_fill_must_be_one_character_one_column_wide` |
-| F7 | `_fit` | `fit` ignores `side` | `test_contract_edges.py::test_a_choice_of_the_wrong_type_is_a_type_error` |
-| G1 | `_graphemes` | GB9c joins any character after a linker | `test_graphemes.py::test_linker_before_a_non_consonant_breaks` |
-| G2 | `_graphemes` | regional indicators paired wrongly | doctest of `graphemes` |
-| G3 | `_graphemes` | GB11 without the emoji before the ZWJ | doctest of `graphemes` |
-| G4 | `_graphemes` | linker state dropped after an extend | `test_graphemes.py::test_conjunct_joins_across_the_linker` |
-| U1 | `_unicode` | Hangul LV and LVT syllables swapped | `test_graphemes.py::test_hangul_syllable_types_decide_what_joins` |
-| U2 | `_unicode` | spacing marks alone take a column | `test_oracle.py::test_every_code_point_alone_measures_as_in_wcwidth` |
-| W1 | `_width` | emoji selector widens any base | `test_hostile.py::test_junk_gives_a_result_or_a_value_error` |
-| W2 | `_width` | darkest skin tone not a modifier | `test_oracle.py::test_emoji_sequences_agree_except_text_default_sequences` |
-| W3 | `_width` | ASCII controls measured as one column | `test_oracle.py::test_every_code_point_alone_measures_as_in_wcwidth` |
-| W4 | `_width` | conjunct counted on a zero-width base | survived; now `test_contract_mutants.py::test_a_linker_with_no_consonant_before_it_makes_no_conjunct` |
-| R1 | `_wrap` | trailing marks split from their word | `test_contract_edges.py::test_the_indent_stays_before_a_word_that_must_break_anyway` |
-| R2 | `_wrap` | indent kept before a word exactly the width | GUIDE example 5 |
-| R3 | `_wrap` | a trailing line break adds an empty line | `test_contract_edges.py::test_spaces_alone_are_one_empty_line_and_no_text_no_line` |
-| R4 | `_wrap` | `max_lines` cuts text that fits | `test_wrap.py::test_escape_sequences_between_spaces_never_make_a_line_of_their_own` |
-| R5 | `_wrap` | a cluster wider than the line never placed | suite stopped with an error (endless loop) |
-| R6 | `_wrap` | a word that exactly fills the line moves down | README example 2 |
-| K1 | `_columns` | first-row bound rejects an exact fit | `test_columnize.py::test_row_order_fills_left_to_right` |
-| K2 | `_columns` | fewer columns tried | `test_columnize.py::test_row_order_fills_left_to_right` |
-| K3 | `_columns` | other trailing whitespace stripped | survived; now `test_contract_mutants.py::test_columnize_strips_only_ascii_spaces_at_line_ends` |
-| K4 | `_columns` | exact fit rejected | `test_cli.py::test_items_are_laid_out_in_rows` |
-| K5 | `_columns` | column order skips items | doctest of `columnize` |
-| L1 | `_cli` | command line gap default | `test_cli.py::test_items_are_laid_out_in_rows` |
-| L2 | `_cli` | empty stdin lines become items | `test_cli.py::test_items_come_from_stdin_and_empty_lines_are_skipped` |
-| L3 | `_cli` | empty output prints a blank line | `test_cli.py::test_no_items_print_nothing` |
+| Mutant | Change | Caught by |
+| --- | --- | --- |
+| C1 | `_check`: width limit off by one | `test_cli.py::test_a_terminal_that_reports_no_width_still_gets_one_column` |
+| C2 | `_check`: `bool` taken as a width | `test_errors.py::test_width_must_be_an_int` |
+| C3 | `_check`: long arguments quoted in errors | `test_contract_edges.py::test_error_messages_stay_short_for_huge_arguments` |
+| C4 | `_check`: unfinished escape accepted | `test_contract_edges.py::test_text_ending_inside_an_escape_sequence_is_refused` |
+| C5 | `_check`: C1 controls and DEL accepted | `test_errors.py::test_single_line_text_rejects_control_characters` |
+| C6 | `_check`: wrong choice type gives `ValueError` | `test_contract_edges.py::test_a_choice_of_the_wrong_type_is_a_type_error` |
+| E1 | `_escapes`: BEL no longer ends an OSC | `test_contract_edges.py::test_finished_or_cut_short_sequences_are_fine` |
+| E2 | `_escapes`: CSI final byte range short by one | `test_escapes.py::test_each_sequence_is_one_escape_piece` |
+| E3 | `_escapes`: every sequence counted as open | `test_columnize.py::test_coloured_items_are_padded_by_their_visible_width` |
+| E4 | `_escapes`: 8-bit DCS skipped by the fast path | survived; now `test_contract_mutants.py::test_an_8_bit_control_string_runs_to_its_terminator_or_the_end` |
+| F1 | `_fit`: `take` keeps one cluster less | doctest of `fit` |
+| F2 | `_fit`: middle cut gives the odd column to the end | doctest of `truncate` |
+| F3 | `_fit`: ellipsis exactly as wide as the width cut | equivalent (see above) |
+| F4 | `_fit`: text exactly the width truncated | `test_properties.py::test_truncate_fits_keeps_whole_units_and_every_escape` |
+| F5 | `_fit`: centring puts the odd column on the left | doctest of `pad` |
+| F6 | `_fit`: zero-width fill accepted | `test_errors.py::test_fill_must_be_one_character_one_column_wide` |
+| F7 | `_fit`: `fit` ignores `side` | `test_contract_edges.py::test_a_choice_of_the_wrong_type_is_a_type_error` |
+| G1 | `_graphemes`: GB9c joins any character after a linker | `test_graphemes.py::test_linker_before_a_non_consonant_breaks` |
+| G2 | `_graphemes`: regional indicators paired wrongly | doctest of `graphemes` |
+| G3 | `_graphemes`: GB11 without the emoji before the ZWJ | doctest of `graphemes` |
+| G4 | `_graphemes`: linker state dropped after an extend | `test_graphemes.py::test_conjunct_joins_across_the_linker` |
+| U1 | `_unicode`: Hangul LV and LVT syllables swapped | `test_graphemes.py::test_hangul_syllable_types_decide_what_joins` |
+| U2 | `_unicode`: spacing marks alone take a column | `test_oracle.py::test_every_code_point_alone_measures_as_in_wcwidth` |
+| W1 | `_width`: emoji selector widens any base | `test_hostile.py::test_junk_gives_a_result_or_a_value_error` |
+| W2 | `_width`: darkest skin tone not a modifier | `test_oracle.py::test_emoji_sequences_agree_except_text_default_sequences` |
+| W3 | `_width`: ASCII controls measured as one column | `test_oracle.py::test_every_code_point_alone_measures_as_in_wcwidth` |
+| W4 | `_width`: conjunct counted on a zero-width base | survived; now `test_contract_mutants.py::test_a_linker_with_no_consonant_before_it_makes_no_conjunct` |
+| R1 | `_wrap`: trailing marks split from their word | `test_contract_edges.py::test_the_indent_stays_before_a_word_that_must_break_anyway` |
+| R2 | `_wrap`: indent kept before a word exactly the width | GUIDE example 5 |
+| R3 | `_wrap`: a trailing line break adds an empty line | `test_contract_edges.py::test_spaces_alone_are_one_empty_line_and_no_text_no_line` |
+| R4 | `_wrap`: `max_lines` cuts text that fits | `test_wrap.py::test_escape_sequences_between_spaces_never_make_a_line_of_their_own` |
+| R5 | `_wrap`: a cluster wider than the line never placed | suite stopped with an error (endless loop) |
+| R6 | `_wrap`: a word that exactly fills the line moves down | README example 2 |
+| K1 | `_columns`: first-row bound rejects an exact fit | `test_columnize.py::test_row_order_fills_left_to_right` |
+| K2 | `_columns`: fewer columns tried | `test_columnize.py::test_row_order_fills_left_to_right` |
+| K3 | `_columns`: other trailing whitespace stripped | survived; now `test_contract_mutants.py::test_columnize_strips_only_ascii_spaces_at_line_ends` |
+| K4 | `_columns`: exact fit rejected | `test_cli.py::test_items_are_laid_out_in_rows` |
+| K5 | `_columns`: column order skips items | doctest of `columnize` |
+| L1 | `_cli`: command line gap default | `test_cli.py::test_items_are_laid_out_in_rows` |
+| L2 | `_cli`: empty stdin lines become items | `test_cli.py::test_items_come_from_stdin_and_empty_lines_are_skipped` |
+| L3 | `_cli`: empty output prints a blank line | `test_cli.py::test_no_items_print_nothing` |
+
+## QA round 1 (item 19)
+
+Five lenses (a API and docs, b ground truth, c adversarial, d packaging, e mutations) ran
+on e57a74b. Every finding is fixed in e97dc62. Each behaviour bug got a contract first,
+shown to fail on e57a74b, then the fix; the three mutation findings were re-run against
+their mutants (R02, S15, S22: all killed). Nothing is disputed.
+
+| Finding | What changed |
+| --- | --- |
+| A1, C4 | `cut` measures the result with its ellipsis and keeps less until it fits; `pad` measures the fill joined to the text and puts it where the width is exact; a joining `fill` and an item starting with a joining mark are refused (`test_contract_joins.py`, seeded fuzz included) |
+| A2 | `wrap` docstring states the indent rule of the GUIDE |
+| A3, A4, F5 | README and GUIDE: one line with at least one word, `break_on_hyphens=False`; spaces alone and line breaks named |
+| A5 | GUIDE errors table: the `pad` row is complete |
+| A6 | CHANGELOG: functions have docstrings, the three `Literal` aliases are described with an example in the package docstring (a `__doc__` set on a cached `Literal` would reach every equal one) |
+| A7 | 0.2.0 and 0.1.0 dated, marked never uploaded, link definitions added |
+| A8 | CONTRIBUTING says which tests run real programs |
+| A9 | `truncate` and GUIDE: short by less than the width of the cluster that did not fit |
+| F1 | a spacing mark in a cluster of its own widens the syllable before it (31 code points, contract and `wcwidth` oracle) |
+| F2 | README "Why" states what was measured and each difference, each pinned in `test_oracle.py` |
+| F3 | a ZWJ makes one emoji only before a pictograph; the wider modifier rule is documented |
+| F4 | control strings end before an ESC that does not start ST, and before CAN or SUB |
+| C1, C2 | `wrap` joins each paragraph once and extends carried spaces in place |
+| C3 | `columnize` skips counts its 16 widest items or any row make too wide, and pads no last cell |
+| C5 | clusters are found in the visible text; escapes inside one stay in it |
+| C6, D F1 | the gap is built only between columns; a gap of the width or more gives one column |
+| C7 | `pad` and `fit` refuse a width above `sys.maxsize`; `MemoryError` is documented |
+| C8 | the CLI quotes at most 40 characters of a bad number |
+| C9 | `truncate` slices ASCII or keeps only the two ends; `display_width` streams |
+| D F2 | `LICENSES/Unicode-3.0.txt` (fetched from unicode.org/license.txt, sha256 e7a93b00...) shipped, licence `MIT AND Unicode-3.0`, `_tables.py` names its sources |
+| D F3 | stdin split only at line ends, other controls exit 2, a leading BOM dropped |
+| E-1 to E-3 | contracts: only U+0020 breaks, ellipsis before dropped escapes, the 40/41 boundary |
+
+The note of lens c about a folder on the build machine is not a library item and went back
+to the orchestrator. Known limit, now documented: `columnize` takes up to the items times
+`width // (gap + 1)` for items laid out to defeat its bounds (16,000 items at width 16,000,
+half one column and half two wide, row order: 7.6 s).
+
+### Disputed findings
+
+None.
 
 ## Packaging, e2e and Pythons (items 8, 10, 13, 14)
 
