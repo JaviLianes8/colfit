@@ -18,6 +18,7 @@ Progress:
 - [x] PR #3 and trace guard CLEAN
 - [x] QA round 1: every finding fixed (e97dc62), none disputed
 - [x] QA round 2: every finding fixed (b105d51), none disputed
+- [x] QA round 3: every finding fixed (9b1342f), none disputed
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -46,14 +47,14 @@ Items 16, 17 and 19 belong to the independent reviewer, the maintainer and the Q
 
 ## Baseline on 0.2.0 (before any change)
 
-Fresh clone at 77be5c8 on another machine (CPython 3.14.2, sources and `wcwidth` present):
-ruff, mypy exit 0; `pytest` 289 passed, 1 skipped (the opt-in wheel test); no doctests.
-Defects found, each now covered by a test: `wrap("  abcdefgh", 8)` split a word that fits
-a line because of its indent; a text ending inside an unfinished escape sequence passed
-`pad`, `fit` and `columnize`, and what followed vanished into it; `wrap` was quadratic in
-a long word (80,000 characters at width 1: 13.5 s, now 0.13 s); `columnize` built every
-candidate layout; `side=1` raised `ValueError`; huge arguments went whole into messages;
-an `annotations` name leaked; no docstring had an example; no GUIDE.
+Fresh clone at 77be5c8 elsewhere (CPython 3.14.2, sources and `wcwidth` present): ruff,
+mypy exit 0; `pytest` 289 passed, 1 skipped (opt-in wheel test); no doctests. Defects
+found, each now covered by a test: `wrap("  abcdefgh", 8)` split a word that fits a line
+because of its indent; a text ending inside an unfinished escape sequence passed `pad`,
+`fit` and `columnize`, and what followed vanished into it; `wrap` was quadratic in a long
+word (80,000 characters at width 1: 13.5 s, now 0.13 s); `columnize` built every candidate
+layout; `side=1` raised `ValueError`; huge arguments went whole into messages; an
+`annotations` name leaked; no docstring had an example; no GUIDE.
 
 ## API review (item 1)
 
@@ -87,13 +88,11 @@ cut, fit, wrap and column rules on seeded mixes of every cluster kind.
 
 ## Author mutation round (item 18)
 
-41 mutants over every module, each applied alone to a copy of a fresh clone at 0096625 on
-another machine (CPython 3.14.2, fetched sources and `wcwidth` 0.9.2 present, GNU ls
-absent there), the full suite run with `-x` and a 300 s per-test limit. 37 killed at
-once. Of the four survivors, three (E4, W4, K3) showed missing contracts, now in
-`tests/test_contract_mutants.py` (f25d2c4) and confirmed to kill them; F3 is equivalent
-(with an ellipsis exactly as wide as the width, cutting it keeps every unit, so the
-result is the same).
+41 mutants over every module, each applied alone to a fresh clone at 0096625 on another
+machine (CPython 3.14.2, fetched sources, `wcwidth` 0.9.2, no GNU ls), the full suite run
+with `-x` and a 300 s per-test limit: 37 killed at once; three survivors (E4, W4, K3)
+showed missing contracts, now in `tests/test_contract_mutants.py` (f25d2c4) and killing
+them; F3 is equivalent (an ellipsis exactly as wide as the width keeps every unit when cut).
 
 | Mutant | Change | Caught by | Mutant | Change | Caught by |
 | --- | --- | --- | --- | --- | --- |
@@ -134,19 +133,15 @@ their mutants (R02, S15, S22: all killed). Nothing is disputed.
 | d (F1 to F3) | the Unicode License v3 notice ships (`LICENSES/Unicode-3.0.txt`, fetched from unicode.org/license.txt, sha256 e7a93b00...), licence `MIT AND Unicode-3.0` (F2); stdin split only at line ends, other controls exit 2, a leading BOM dropped (F3) |
 | e (E-1 to E-3) | contracts: only U+0020 breaks, ellipsis before dropped escapes, the 40/41 boundary |
 
-Lens c's note about a folder on the build machine is no library item; it went back to the
-orchestrator. The limit noted here in round 1 (`columnize` taking up to the items times
-`width // (gap + 1)`) did not meet item 9; round 2 removed it.
+Lens c's note about a folder on the build machine went back to the orchestrator. The round
+1 limit of `columnize` (the items times `width // (gap + 1)`) failed item 9; round 2 removed it.
 
 ## QA round 2 (item 19)
 
-The same five lenses re-ran on 1c0a3b7: lens a confirmed A1 to A9 fixed, lens b F1 and
-F3 to F5 (F2 in part, see R1), lens c C1, C2 and C4 to C9 (C3 not, see N1), lens d F2 and
-F3 (F1 in part, see F1b), and they reported what follows. Every finding is fixed in
-b105d51. Each behaviour bug got a contract first (`tests/test_contract_qa2.py` and the
-tests named below), run against the source of 1c0a3b7: 19 failed there, all pass on
-b105d51. The four lens e survivors were applied
-again to b105d51 one at a time: all four killed.
+The same five lenses re-ran on 1c0a3b7 and confirmed the round 1 fixes but for b F2, c C3
+and d F1 (in part, see b R1, c N1 and d F1b). Every finding is fixed in b105d51; each
+behaviour bug got a contract first (`tests/test_contract_qa2.py` and the tests named
+below): 19 failed on 1c0a3b7, all pass on b105d51, and the four lens e survivors are killed.
 
 | Finding | What changed |
 | --- | --- |
@@ -160,6 +155,26 @@ again to b105d51 one at a time: all four killed.
 | d F1b | `columnize` refuses a `gap` above `sys.maxsize` with `ValueError`; the `colfit` command reports it, and a `MemoryError`, with exit status 2; docstring, GUIDE, README and CHANGELOG updated |
 | e E2-1 to E2-4 | Contracts: Thai and Lao AM refused as a first character, stdin read with POSIX line ends too, escapes kept when no visible cluster can stay, a fill joining the end of the text for each `align` |
 
+## QA round 3 (item 19)
+
+Lenses b, d and e reported on f64a51f: b N2 and N3, d F1b and e's four round 2 mutants
+confirmed fixed, and what follows, all fixed in 9b1342f. The N1 contract in
+`tests/test_contract_qa3.py` failed on f64a51f; lens e's five survivors (C09, C13, C16,
+C20, W12) and W13 (the new rule cut to spacing marks), each applied alone to 9b1342f, are
+killed by that file. W11 is equivalent: no prepended character takes zero columns.
+
+| Finding | What changed |
+| --- | --- |
+| b R1 | README: after a syllable ending in a virama, `wcwidth` gives it and the next character at most two columns together (20,000 seeded syllables in the six scripts, no exception); the agreement claim is for syllables measured alone; three more pinned differences in `test_oracle.py` |
+| b N1 | Marks with no base after a visible prepended character sit on it, so a spacing mark among them widens it (`cluster_width`). Of 64,800 sequences of a prepended character, a nonspacing mark and a spacing mark, every one that forms one cluster now measures as in 0.2.0, and differs from `wcwidth` only where the same marks after a letter do; comment, GUIDE and CHANGELOG updated |
+| b N4 | GUIDE and README: the GNU `ls` match holds as long as the column search does not stop early |
+| d N1, e E3-0 | This report is back under 200 lines (two mutants per table row, round 1 grouped by lens); the gates ran at 9b1342f and again on the tree of this record commit (see Gates) |
+| e E3-1 to E3-5 | Contracts: 500 mixed items equal the plain search in both orders; the fallback with `gap=1` takes 30,665 columns at width 91,994; skewed widths in column order give the 11 rows of a search with no limit; a gap of 4,000 or 5,000 digits is quoted in at most 100 characters; U+102C U+0E33 measures 1, as in `wcwidth` |
+
+## Disputed findings
+
+None, in any round.
+
 ## Packaging, e2e and Pythons (items 8, 10, 13, 14)
 
 Every interpreter on this PC from `requires-python` up, each in a fresh venv from a fresh
@@ -170,7 +185,7 @@ manifest but no fetched file, release notes or caches, install the wheel in a ne
 run a program and the CLI from an empty folder, and type-check a consumer against the
 install): CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded all
 pass with no skips. CPython 3.8.20 and 3.9.25 are below `requires-python` and refuse the
-install. No other interpreter is installed here.
+install. No other interpreter is installed here. At 9b1342f (QA round 3): 699 passed on each.
 
 ## Gates (item 15)
 
@@ -179,5 +194,7 @@ At 5af1a32 on another machine from a fresh clone (CPython 3.14.2, fetched source
 `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (501 passed,
 1 skipped: no `ls` there) exit 0; on this PC no skips on every interpreter above. QA round
 1, the tree of 5faad35 there, same setup: all five exit 0, `pytest` 653 passed, 1 skipped.
-QA round 2, the tree of b105d51 there, same setup: all five exit 0, `pytest` 684 passed,
-1 skipped (no `ls` there; `test_reference_programs.py` passes on this PC).
+QA round 2, the tree of b105d51 there: all five exit 0, `pytest` 684 passed, 1 skipped.
+QA round 3, the tree of 9b1342f there: all five exit 0, `pytest` 698 passed, 1 skipped
+(no `ls` there; `test_reference_programs.py` passes on this PC). This record commit changes
+only this report; the same five ran on its own tree before it was pushed: all exit 0.
