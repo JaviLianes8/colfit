@@ -1,5 +1,7 @@
 # colfit
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Fit text to terminal columns: measure it, cut it with an ellipsis, pad or centre it, wrap
 it, and lay lists out in columns. Widths follow what a terminal draws: wide East Asian
 characters take two columns, accents none, an emoji sequence or a flag two, and escape
@@ -92,44 +94,11 @@ print(len(text), len(graphemes(text)))
 `Align` (`"left"`, `"center"`, `"right"`), `Side` (`"end"`, `"start"`, `"middle"`) and
 `Order` (`"rows"`, `"columns"`) are the literal types of those arguments.
 
-## Rules
-
-Width, per extended grapheme cluster (UAX #29), with tables generated from Unicode 18.0.0,
-so every Python version gives the same answer:
-
-- East Asian Wide and Fullwidth characters take two columns; ambiguous ones take one.
-- Marks, format characters, default ignorable code points, Hangul medial and final jamo,
-  and control characters take none; the soft hyphen, drawn as a hyphen, takes one.
-- A ZWJ sequence or a skin tone modifier sequence on an emoji, a flag, and a single
-  regional indicator take two.
-- The emoji presentation selector makes a character with variation sequences two columns;
-  the text presentation selector makes it one.
-- A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable two.
-- Escape sequences take none: CSI (`ESC [` or 8-bit) sequences, OSC, DCS, SOS, PM and APC
-  strings up to ST (BEL also ends an OSC), and any other `ESC` sequence. An unfinished
-  sequence runs to the end of the text.
-
-Cutting and padding:
-
-- Clusters are never split. Next to a wide character the result can be a column short;
-  `fit` fills that column.
-- The removed text is replaced by the ellipsis followed by the escape sequences it held, so
-  colours and links still close. An ellipsis wider than the width is itself cut.
-- A middle cut gives the odd column to the start; when a wide character keeps the start
-  from using its half, the end may use the column.
-- Centring puts the odd column on the right.
-- `truncate`, `pad`, `fit`, `columnize` items and each line of `wrap` reject control
-  characters outside escape sequences (`ValueError`). Expand tabs first with
-  `str.expandtabs()`.
-
-Wrapping keeps paragraphs (line breaks in the text), keeps the leading spaces of a
-paragraph as its indent, drops spaces at a break, and gives a cluster wider than the line a
-line of its own. With `max_lines`, the last kept line ends with the ellipsis and the escape
-sequences of the dropped lines.
-
-Wrong types raise `TypeError` (`bool` is not a width); negative widths, a zero width for
-`wrap` and `columnize`, unknown `side`, `align` or `order` values, and a `fill` that is not
-one character one column wide raise `ValueError`.
+The rules in short: widths per grapheme cluster on fixed Unicode 18.0.0 tables, escape
+sequences take no columns and are never lost, clusters are never split, and control
+characters (tabs included) are refused with `ValueError` instead of guessed at. The
+[GUIDE](https://github.com/JaviLianes8/colfit/blob/main/GUIDE.md) has every rule with
+examples, and how the results were checked.
 
 ## Command line
 
@@ -153,22 +122,35 @@ exit with status 2.
 ## Why
 
 `len()` is wrong for terminal output as soon as a string holds CJK text, accents, emoji or
-colour codes, and code that counts code points cuts emoji in half. `wcwidth` is the
-reference for terminal widths and now offers its own `width`, `ljust`, `clip` and `wrap`.
-`colfit` is for code that wants the layout side with no dependency: exact-width cells with
-an ellipsis at the end, start or middle, tie rules written down, escape sequences kept
-when text is cut, and `ls`-style columns, all typed and on fixed Unicode 18.0.0 data. Its
-widths agree with `wcwidth` 0.9.2 on every single code point, on Indic syllables, Hangul
-and styled text; for ZWJ and skin tone sequences on a base without the emoji presentation
-selector, `colfit` follows UTS #51 and counts two columns where `wcwidth` counts one.
+colour codes, and `textwrap` counts code points too. Code that cuts by code points also
+splits emoji and accented letters in half.
+
+`wcwidth` is the reference for terminal widths. Version 0.9.2 also offers `width`,
+`ljust`, `rjust`, `center`, `clip` and `wrap`, with tab stops, cursor movement and a choice
+of Unicode versions and terminals. `colfit` is a smaller, layout-first alternative with no
+dependency: cells cut to an exact width with an ellipsis at the end, the start or the
+middle, written tie rules, escape sequences kept when text is cut, and `ls`-style columns
+(the same layout as GNU `ls`), all typed, on fixed Unicode 18.0.0 data.
+
+Its widths agree with `wcwidth` 0.9.2 on every single code point, on Indic syllables,
+Hangul and styled text, and its `wrap` gives the lines of `wcwidth.wrap` for words that fit
+a line. For ZWJ and skin tone sequences on a base without the emoji presentation selector,
+`colfit` follows UTS #51 and counts two columns where `wcwidth` counts one.
 
 Not covered: line breaking by UAX #14 (text without spaces breaks between any two
 characters), ambiguous characters as two columns, tab stops, and cursor movement
 sequences (they count zero like every escape sequence).
 
+## Documentation
+
+- [GUIDE](https://github.com/JaviLianes8/colfit/blob/main/GUIDE.md): every rule, with
+  examples that run as tests.
+- [CHANGELOG](https://github.com/JaviLianes8/colfit/blob/main/CHANGELOG.md): what changed
+  in each release.
+
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/colfit/blob/main/LICENSE).
 
 ## Links
 

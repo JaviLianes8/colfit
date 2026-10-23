@@ -1,0 +1,187 @@
+# colfit guide
+
+Every rule of every public name, with examples. Each Python block below runs as a test: a
+run of comment lines right under the code holds what the code prints.
+
+## Widths
+
+`display_width` measures per extended grapheme cluster (UAX #29) with tables generated
+from Unicode 18.0.0, so every Python version gives the same answer.
+
+- East Asian Wide and Fullwidth characters take two columns; ambiguous ones take one.
+- Marks, format characters, default ignorable code points, Hangul medial and final jamo,
+  and control characters take none; the soft hyphen, drawn as a hyphen, takes one.
+- An emoji ZWJ sequence or skin tone modifier sequence, a flag and a single regional
+  indicator take two.
+- The emoji presentation selector (U+FE0F) makes a character with variation sequences two
+  columns; the text presentation selector (U+FE0E) makes it one.
+- A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable two.
+- Escape sequences take none (see below).
+
+```python
+from colfit import display_width, graphemes
+
+plain = ["abc", "\u65e5\u672c", "e\u0301", "\x1b[1mbold\x1b[0m", "\u0915\u094d\u0937\u093f"]
+emoji = ["\U0001f44d\U0001f3fd", "\U0001f1ea\U0001f1f8", "\u2764", "\u2764\ufe0f"]
+print([display_width(text) for text in plain], [display_width(text) for text in emoji])
+print(graphemes("e\u0301\U0001f44d\U0001f3fd!") == ["e\u0301", "\U0001f44d\U0001f3fd", "!"])
+# [3, 4, 1, 4, 2] [2, 2, 1, 2]
+# True
+```
+
+## Escape sequences
+
+Terminals act on escape sequences (ECMA-48) but never draw them. colfit knows CSI
+sequences (`ESC [` or the 8-bit CSI, as in colours), OSC strings (`ESC ]`, as in
+hyperlinks and titles, ended by ST or BEL), DCS, SOS, PM and APC strings up to ST, and any
+other `ESC` sequence. A sequence cut short by a character that cannot be part of it ends
+there.
+
+They take no columns, they are never cut, and the ones in removed text are kept right
+after the ellipsis, so colours and links still close:
+
+```python
+from colfit import truncate
+
+link = "\x1b]8;;https://example.com\x1b\\Example site\x1b]8;;\x1b\\"
+print(repr(truncate(link, 8, ellipsis="...")))
+red = "\x1b[31mwarning: disk almost full\x1b[0m"
+print(repr(truncate(red, 10)))
+# '\x1b]8;;https://example.com\x1b\\Examp...\x1b]8;;\x1b\\'
+# '\x1b[31mwarning: …\x1b[0m'
+```
+
+A text that ends inside an unfinished sequence (a lone `ESC`, a colour code without its
+final letter, a hyperlink without its terminator) would swallow whatever is written after
+it, so `truncate`, `pad`, `fit`, `wrap` and `columnize` refuse it with `ValueError`.
+`display_width` and `graphemes` take any text; the unfinished sequence runs to the end.
+
+```python
+from colfit import display_width, pad
+
+print(display_width("ab\x1b]8;;https://example.com"))
+try:
+    pad("ab\x1b[31", 5)
+except ValueError as error:
+    print(error)
+# 2
+# text ends inside an unfinished escape sequence
+```
+
+## Cutting and padding
+
+- `truncate` returns text that fits unchanged. Otherwise it replaces part of it with the
+  ellipsis: at the end, at the start, or in the middle, where the start gets the odd
+  column. Clusters are never split, so next to a wide character the result can be a
+  column short; an ellipsis wider than the width is itself cut.
+- `pad` adds `fill` to reach the width and returns wider text unchanged. Centring puts the
+  odd column on the right, as `format(text, "^5")` does (`str.center` and
+  `wcwidth.center` put it on the left when the width is odd).
+- `fit` is `truncate` then `pad`: always exactly the width.
+
+```python
+from colfit import fit, pad, truncate
+
+print(truncate("\u65e5\u672c\u8a9e\u30c6\u30ad\u30b9\u30c8", 7, ellipsis="..."))
+print(truncate("abcdefghij", 7, side="middle", ellipsis="."))
+print("[" + pad("ab", 5, align="center") + "]", "[" + format("ab", "^5") + "]")
+print("[" + fit("\u65e5\u672c\u8a9e", 4, ellipsis="") + "]")
+# 日本...
+# abc.hij
+# [ ab  ] [ ab  ]
+# [日本]
+```
+
+## Wrapping
+
+- Lines break at spaces; spaces at a break are dropped, spaces between words are kept.
+- A word wider than the line starts a new line and breaks between clusters. A single
+  cluster wider than the line gets a line of its own, the only line that can be wider.
+- Each line break in the text (any `str.splitlines` break outside escape sequences) starts
+  a paragraph; an empty paragraph gives an empty line. No text gives no lines.
+- The leading spaces of a paragraph are its indent. They are kept when the first word fits
+  after them, dropped when the word fits a line but not after them, and kept before a
+  word that has to break anyway, as `textwrap` does.
+- With `max_lines`, the last kept line ends with the ellipsis and the escape sequences
+  of the dropped lines.
+
+```python
+from colfit import wrap
+
+print(wrap("  one two three\n\nfour", 9))
+print(wrap("   abcdefgh xy", 8))
+print(wrap("supercalifragilistic", 8))
+print(wrap("one two three four five", 9, max_lines=2))
+print(wrap("", 5), wrap("   ", 5))
+# ['  one two', 'three', '', 'four']
+# ['abcdefgh', 'xy']
+# ['supercal', 'ifragili', 'stic']
+# ['one two', 'three…']
+# [] ['']
+```
+
+When every word and the indent fit a line, `wrap` gives the same lines as
+`textwrap.wrap(text, width, break_on_hyphens=False)` on ASCII text and as `wcwidth.wrap`
+with the same options on text with wide characters and emoji. Both break a long word to
+fill the current line, where `wrap` starts it on a new one.
+
+## Columns
+
+`columnize` tries the most columns that could fit, then one fewer, and takes the first
+layout whose columns, each as wide as its widest cell, fit with `gap` spaces between
+them. Row order fills each row left to right; column order fills each column top to
+bottom with as few rows as that column count allows, like `ls`. Lines end without
+trailing spaces, and items wider than the width end up in a single column.
+
+GNU `ls -C -w W` (and `ls -x` for row order) lays names out the same way as
+`columnize(names, W - 1)`: ls leaves the last screen column free and reserves at least
+three columns for every column, so the match holds for names of three characters or more.
+
+```python
+from colfit import columnize
+
+names = ["README.md", "LICENSE", "pyproject.toml", "src", "tests", "CHANGELOG.md"]
+print(columnize(names, 38))
+print(columnize(names, 38, order="columns"))
+print(columnize(names, 38, gap=1, order="columns"))
+# README.md  LICENSE  pyproject.toml
+# src        tests    CHANGELOG.md
+# README.md       src
+# LICENSE         tests
+# pyproject.toml  CHANGELOG.md
+# README.md pyproject.toml tests
+# LICENSE   src            CHANGELOG.md
+```
+
+Each column count is tried from the most that could fit down, so the time grows with the
+number of items times `width // (gap + 1)`: linear for terminal widths.
+
+## Errors
+
+Every public function raises `TypeError` for an argument of the wrong type (`bool` is not
+a width) and `ValueError` for a value it cannot use. Messages quote at most 40
+characters of an argument.
+
+| Function | `ValueError` when |
+| --- | --- |
+| `truncate` | `width` below 0, unknown `side`, text or ellipsis with a control character |
+| `pad` | `width` below 0, unknown `align`, `fill` not one character one column wide |
+| `fit` | any of the above |
+| `wrap` | `width` or `max_lines` below 1, a line or the ellipsis with a control character |
+| `columnize` | `width` below 1, `gap` below 0, unknown `order`, an item with a control character |
+
+A control character here is one outside an escape sequence (C0, C1, U+2028, U+2029), or
+a text ending inside an unfinished sequence. Tabs are refused too: expand them first with
+`str.expandtabs()`. `columnize` raises `TypeError` for a single `str` instead of a list.
+
+## How the results are checked
+
+- The Unicode 18.0.0 files and UAX #29 and #11, fetched from unicode.org and checked
+  against the sha256 in `tests/sources/MANIFEST.txt`: every line of
+  `GraphemeBreakTest.txt`, every fully qualified emoji of `emoji-test.txt`, and the
+  generated tables rebuilt from the data files.
+- `wcwidth` 0.9.2 as an independent measure: every code point alone, every emoji of
+  `emoji-test.txt` (apart from ZWJ and modifier sequences on a text default base, which
+  UTS #51 draws as one emoji and `wcwidth` measures as text), Indic and Hangul syllables,
+  styled text, `wrap` against `wcwidth.wrap`, `pad` against `wcwidth.ljust` and `rjust`.
+- GNU `ls` run live on generated file names, `textwrap.wrap` and `format` alignment.
