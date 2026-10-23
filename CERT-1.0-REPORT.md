@@ -17,6 +17,7 @@ Progress:
 - [x] Gates (item 15), final run
 - [x] PR #3 and trace guard CLEAN
 - [x] QA round 1: every finding fixed (e97dc62), none disputed
+- [x] QA round 2: every finding fixed (b105d51), none disputed
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -171,9 +172,34 @@ their mutants (R02, S15, S22: all killed). Nothing is disputed.
 | E-1 to E-3 | contracts: only U+0020 breaks, ellipsis before dropped escapes, the 40/41 boundary |
 
 Lens c's note about a folder on the build machine is no library item; it went back to the
-orchestrator. Known limit, documented: `columnize` takes up to the items times `width //
-(gap + 1)` for items laid out against its bounds (16,000 items 1 or 2 wide, width 16,000,
-row order: 7.6 s).
+orchestrator. The limit noted here in round 1 (`columnize` taking up to the items times
+`width // (gap + 1)`) did not meet item 9; round 2 removed it.
+
+### Disputed findings
+
+None.
+
+## QA round 2 (item 19)
+
+The same five lenses re-ran on 1c0a3b7: lens a confirmed A1 to A9 fixed, lens b F1 and
+F3 to F5 (F2 in part, see R1), lens c C1, C2 and C4 to C9 (C3 not, see N1), lens d F2 and
+F3 (F1 in part, see F1b), and they reported what follows. Every finding is fixed in
+b105d51. Each behaviour bug got a contract first (`tests/test_contract_qa2.py` and the
+tests named below), run against the source of 1c0a3b7: 19 failed there, all pass on
+b105d51. The four lens e survivors were applied
+again to b105d51 one at a time: all four killed.
+
+| Finding | What changed |
+| --- | --- |
+| a N1 | Option (b), documented: `truncate` and the GUIDE say that a joining ellipsis can leave more columns free than the cut cluster, and that with an empty ellipsis in the middle the kept ends can join (two lone regional indicators make a flag); contracts pin the three cases of the report |
+| b R1 | README: after a two-column syllable ending in a virama, `wcwidth` gives the next character no column (checked in all six scripts); two cases added to the README differences in `test_oracle.py` |
+| b N1 | A spacing mark right after a visible prepended character widens it to two, as in 0.2.0 (Kawi, U+0600, U+0D4E and Sharada pinned); all 27 x 477 Prepend and spacing mark pairs give 2, as `wcwidth` does apart from its 162 spacing viramas, a listed difference |
+| b N2 | README: the comparison is with `control_codes="ignore"`, under which escapes inside clusters agree (25,454 fuzzed strings, 0 differences); with the default `"parse"` `wcwidth` splits a cluster at an escape, now a listed and pinned difference |
+| b N3 | The column bound comes from the narrowest items (each column is as wide as a different item), so empty and escape-only items let more columns fit; the plain-search oracle tries every count and runs on 3,000 cases with such items |
+| c N1 | `columnize` takes at once a count where every column could be as wide as the widest item, and caps its search at 32 passes over the items beyond about four million item visits, then takes the most columns that fit at the widest item's width (docstring, GUIDE, CHANGELOG). 64,000 items 1 or 2 wide at width 64,000: 0.57 s, was 20 s; a contract counts the item visits in both orders |
+| c N2 | `units` collects the pieces of a cluster in a list and joins them once: 800,000 escapes inside one cluster cost what as many between clusters cost |
+| d F1b | `columnize` refuses a `gap` above `sys.maxsize` with `ValueError`; the `colfit` command reports it, and a `MemoryError`, with exit status 2; docstring, GUIDE, README and CHANGELOG updated |
+| e E2-1 to E2-4 | Contracts: Thai and Lao AM refused as a first character, stdin read with POSIX line ends too, escapes kept when no visible cluster can stay, a fill joining the end of the text for each `align` |
 
 ### Disputed findings
 
@@ -198,3 +224,5 @@ At 5af1a32 on another machine from a fresh clone (CPython 3.14.2, fetched source
 `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (501 passed,
 1 skipped: no `ls` there) exit 0; on this PC no skips on every interpreter above. QA round
 1, the tree of 5faad35 there, same setup: all five exit 0, `pytest` 653 passed, 1 skipped.
+QA round 2, the tree of b105d51 there, same setup: all five exit 0, `pytest` 684 passed,
+1 skipped (no `ls` there; `test_reference_programs.py` passes on this PC).
