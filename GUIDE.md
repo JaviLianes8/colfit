@@ -18,8 +18,8 @@ from Unicode 18.0.0, so every Python version gives the same answer.
   columns; the text presentation selector (U+FE0E) makes it one.
 - A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable
   two, and so does a spacing mark that Unicode puts in a cluster of its own (Myanmar, Tai
-  Tham, Ahom) or right after a prepended character (U+0600, U+0D4E), which otherwise adds
-  its width before its cluster.
+  Tham, Ahom) or after a prepended character with no other base (U+0600, U+0D4E); a
+  prepended character otherwise adds its width before its cluster.
 - Escape sequences take none and never split a cluster (see below).
 
 ```python
@@ -35,12 +35,11 @@ print(graphemes("e\u0301\U0001f44d\U0001f3fd!") == ["e\u0301", "\U0001f44d\U0001
 
 ## Escape sequences
 
-Terminals act on escape sequences (ECMA-48) but never draw them. colfit knows CSI
-sequences (`ESC [` or the 8-bit CSI, as in colours), OSC strings (`ESC ]`, as in
-hyperlinks and titles, ended by ST or BEL), DCS, SOS, PM and APC strings up to ST, and any
-other `ESC` sequence. A sequence cut short by a character that cannot be part of it ends
-there; a control string also ends before an `ESC` that does not start ST and before `CAN`
-or `SUB`, as in the DEC terminal parser.
+Terminals act on escape sequences (ECMA-48) but never draw them. colfit knows CSI (`ESC [`
+or the 8-bit CSI, as in colours), OSC strings (`ESC ]`, hyperlinks and titles, ended by ST
+or BEL), DCS, SOS, PM and APC strings up to ST, and any other `ESC` sequence. A sequence
+cut short by a character that cannot be part of it ends there; a control string also ends
+before an `ESC` that does not start ST and before `CAN` or `SUB`, as the DEC parser does.
 
 They take no columns, they are never cut, and the ones in removed text are kept right
 after the ellipsis, so colours and links still close:
@@ -151,8 +150,9 @@ visits, the search takes the most columns that fit when each is as wide as the w
 item. A gap too large for memory raises `MemoryError`.
 
 GNU `ls -C -w W` (and `ls -x` for row order) lays names out the same way as
-`columnize(names, W - 1)`: ls leaves the last screen column free and reserves at least
-three columns for every column, so the match holds for names of three characters or more.
+`columnize(names, W - 1)` as long as the search does not stop early (ls has no such limit):
+ls leaves the last screen column free and reserves at least three columns for every column,
+so the match holds for names of three characters or more.
 
 ```python
 from colfit import columnize

@@ -170,8 +170,11 @@ DIFFERENCES = [
     ("\u0b95\u0bcd\u0b95\u0bbe", 3, 2),  # Tamil
     ("\u1b13\u1b44", 2, 1),  # Balinese: a spacing virama
     ("\U00011315\U0001134d", 2, 1),  # Grantha
-    ("\u0915\u094d\u0915\u094d,", 3, 2),  # a final virama: wcwidth drops what follows
+    ("\u0915\u094d\u0915\u094d,", 3, 2),  # a final virama: two columns at most with what follows
     ("\u0d28\u0d4d\u0d28\u0d4d \u0d2a", 4, 3),  # Malayalam, before a space
+    ("\u091c\u0917\u0924\u094d\U0001f600", 5, 4),  # a one-column syllable before an emoji
+    ("\u0915\u094d\uac00", 3, 2),  # and before a Hangul syllable
+    ("\u0c15\u0c3e\u0c4d\u65e5", 3, 2),  # Telugu, before a wide character
 ]
 
 

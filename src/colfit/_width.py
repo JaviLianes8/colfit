@@ -21,6 +21,10 @@ A cluster that has escape sequences inside it keeps them in its text.
 """
 
 
+def _is_mark(char: str) -> bool:
+    return is_spacing_mark(char) or grapheme_class(char) in ("E", "S")
+
+
 def cluster_width(cluster: str) -> int:
     """Columns one grapheme cluster takes."""
     start = 0
@@ -28,9 +32,9 @@ def cluster_width(cluster: str) -> int:
     while start < len(cluster) - 1 and grapheme_class(cluster[start]) == "P":
         prepended += char_width(cluster[start])  # drawn before the cluster it joins
         start += 1
-    if start and is_spacing_mark(cluster[start]) and char_width(cluster[start - 1]):
-        # A spacing mark right after a visible prepended character widens it, as it
-        # widens any other base.
+    if start and _is_mark(cluster[start]) and char_width(cluster[start - 1]):
+        # Marks with no base of their own sit on the visible prepended character, so a
+        # spacing mark among them widens it, as it widens any other base.
         start -= 1
         prepended -= char_width(cluster[start])
     base = cluster[start]

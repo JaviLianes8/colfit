@@ -130,26 +130,28 @@ splits emoji and accented letters in half.
 of Unicode versions and terminals. `colfit` is a smaller, layout-first alternative with no
 dependency: cells cut to an exact width with an ellipsis at the end, the start or the
 middle, written tie rules, escape sequences kept when text is cut, and `ls`-style columns
-(the same layout as GNU `ls`), all typed, on fixed Unicode 18.0.0 data.
+(the layout of GNU `ls` unless the search stops early, see the GUIDE), all typed, on fixed
+Unicode 18.0.0 data.
 
 Its widths agree with `wcwidth` 0.9.2, called with `control_codes="ignore"` (`colfit`
 counts control characters as zero), on every single code point, on Devanagari, Bengali,
-Gujarati, Oriya, Telugu and Malayalam syllables, on the spacing marks of Myanmar, Tai
-Tham and Ahom that Unicode puts in clusters of their own, and on Hangul and styled text.
-For one line of text with at least one word, whose words and indent fit a line, its
-`wrap` gives the lines of `wcwidth.wrap(text, width, break_on_hyphens=False)`.
+Gujarati, Oriya, Telugu and Malayalam syllables measured alone, on the spacing marks of
+Myanmar, Tai Tham and Ahom that Unicode puts in clusters of their own, and on Hangul and
+styled text. For one line of text with at least one word, whose words and indent fit a
+line, its `wrap` gives the lines of `wcwidth.wrap(text, width, break_on_hyphens=False)`.
 
 Where they differ, `colfit` counts the clusters Unicode makes. A ZWJ or skin tone sequence
 on a base without the emoji presentation selector is one emoji, two columns, where
 `wcwidth` counts one. Consonant, virama, consonant and vowel sign in a script whose virama
 Unicode does not treat as a linker (Kannada `ಕ್ಕಾ`, Gurmukhi, Sinhala, Tamil) are two
 clusters, three columns, where `wcwidth` counts one conjunct of two. A syllable that ends
-in a spacing virama (Balinese `ᬓ᭄`, Grantha) takes two columns where `wcwidth`
-counts one. After a two-column syllable that ends in a virama (`क्क्` before a comma or
-a space, in any of the six scripts named above), `wcwidth` gives the next character no column
-and `colfit` gives it its own. With its default `control_codes="parse"`, `wcwidth` also
-splits a cluster at an escape sequence inside it, so a colour code between the two
-regional indicators of a flag gives four columns there and two in `colfit`.
+in a spacing virama (Balinese `ᬓ᭄`, Grantha) takes two columns where `wcwidth` counts one.
+After a syllable that ends in a virama (in any of the six scripts named above), `wcwidth`
+gives that syllable and the next character at most two columns together, where `colfit`
+measures two clusters: `क्क्` before a comma takes three columns and `जगत्` before an emoji
+five, where `wcwidth` counts two and four. With its default `control_codes="parse"`,
+`wcwidth` also splits a cluster at an escape sequence inside it, so a colour code between
+the two regional indicators of a flag gives four columns there and two in `colfit`.
 
 Not covered: line breaking by UAX #14 (text without spaces breaks between any two
 characters), ambiguous characters as two columns, tab stops, and cursor movement

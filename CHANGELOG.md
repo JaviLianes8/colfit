@@ -38,8 +38,9 @@ on they change only in a new major version.
 - A ZWJ joins an emoji into a two-column sequence only when another pictograph follows
   it: `"\u00a9\u200d\u0301"` measures 1, not 2.
 - Characters that Unicode prepends to a cluster (such as U+0D4E) add their own width
-  before it instead of taking the place of its base. A spacing mark right after a
-  visible prepended character still widens it to two columns, as in 0.2.0.
+  before it instead of taking the place of its base. A spacing mark after a visible
+  prepended character, in a cluster with no other base (right after it or after other
+  marks), still widens it to two columns, as in 0.2.0.
 - `truncate`, `fit` and `wrap` with `max_lines` measure the result with its ellipsis in
   place, so an ellipsis that joins the kept text (one starting with a combining mark,
   a ZWJ or a variation selector) can no longer push it past the width; the result may
