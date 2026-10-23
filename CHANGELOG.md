@@ -6,6 +6,32 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-23
+
+The first stable release. The public API is the ten names of 0.2.0 with the same
+signatures, parameter names and defaults: `display_width`, `graphemes`, `truncate`, `pad`,
+`fit`, `wrap`, `columnize` and the `Align`, `Side` and `Order` types, plus the `colfit`
+command. From here on they change only in a new major version.
+
+### Changed
+
+- `wrap` keeps the leading spaces of a paragraph only when the first word fits after
+  them. When the word fits a line but not after the indent, the indent is dropped, as
+  `textwrap` does, instead of the word being split.
+- `side`, `align` and `order` values that are not `str` raise `TypeError`, like every
+  other argument of the wrong type, instead of `ValueError`.
+- Error messages quote at most 40 characters of an argument, and an integer too large to
+  print no longer breaks the message.
+- `columnize` skips column counts whose first row is already too wide and, in column
+  order, layouts it has already tried, so wide widths take far less time. The layouts are
+  the same.
+
+### Added
+
+- Every public name has a docstring with examples that run as tests.
+- A [GUIDE](https://github.com/JaviLianes8/colfit/blob/main/GUIDE.md) with every rule and
+  how the results compare with `wcwidth`, `textwrap` and GNU `ls`.
+
 ## [0.2.0]
 
 ### Added

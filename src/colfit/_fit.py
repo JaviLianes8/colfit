@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from ._check import choice_arg, int_arg, line_arg
+from ._check import choice_arg, int_arg, line_arg, shown
 from ._width import Unit, units, width_of
 
 Align = Literal["left", "center", "right"]
@@ -55,13 +55,26 @@ def cut(line: list[Unit], width: int, mark: str, side: str) -> str:
 
 
 def truncate(text: str, width: int, *, ellipsis: str = ELLIPSIS, side: Side = "end") -> str:
-    """Cut ``text`` to at most ``width`` columns, marking the cut with ``ellipsis``.
+    r"""Cut ``text`` to at most ``width`` columns, marking the cut with ``ellipsis``.
 
     Text that fits is returned unchanged. ``side`` is where the cut goes: ``"end"``,
     ``"start"`` or ``"middle"`` (the start keeps the larger half). Grapheme clusters are
     never split, so the result can be one column short of ``width`` next to a wide
     character. Escape sequences of the removed text are kept right after the ellipsis.
     An ellipsis wider than ``width`` is itself cut.
+
+    >>> truncate("The quick brown fox", 12, ellipsis="...")
+    'The quick...'
+    >>> truncate("The quick brown fox", 12, ellipsis="...", side="middle")
+    'The q... fox'
+    >>> truncate("The quick brown fox", 12) == "The quick b\u2026"
+    True
+    >>> truncate("short", 12)
+    'short'
+
+    Raises ``TypeError`` for arguments of the wrong type and ``ValueError`` for a
+    negative ``width``, an unknown ``side``, or ``text`` or ``ellipsis`` holding a line
+    break or another control character outside an escape sequence.
     """
     line_arg("text", text)
     int_arg("width", width, 0)
@@ -77,15 +90,26 @@ def _fill_arg(fill: object) -> str:
     text = line_arg("fill", fill)
     found = units(text)
     if len(found) != 1 or found[0][1] != 1:
-        raise ValueError(f"fill must be one character one column wide, got {fill!r}")
+        raise ValueError(f"fill must be one character one column wide, got {shown(fill)}")
     return text
 
 
 def pad(text: str, width: int, *, align: Align = "left", fill: str = " ") -> str:
-    """Pad ``text`` with ``fill`` to ``width`` columns; wider text is returned unchanged.
+    r"""Pad ``text`` with ``fill`` to ``width`` columns; wider text is returned unchanged.
 
     ``align`` places the text ``"left"``, ``"right"`` or ``"center"``; when centring
     leaves an odd column over, it goes on the right.
+
+    >>> pad("ok", 6, align="center")
+    '  ok  '
+    >>> pad("ok", 5, align="center", fill=".")
+    '.ok..'
+    >>> pad("\u65e5", 4, fill=".") == "\u65e5.."
+    True
+
+    Raises ``TypeError`` for arguments of the wrong type and ``ValueError`` for a
+    negative ``width``, an unknown ``align``, a ``fill`` that is not one character one
+    column wide, or ``text`` holding a control character outside an escape sequence.
     """
     line_arg("text", text)
     int_arg("width", width, 0)
@@ -107,5 +131,13 @@ def fit(
     side: Side = "end",
     fill: str = " ",
 ) -> str:
-    """Return ``text`` in exactly ``width`` columns: cut as `truncate`, then padded as `pad`."""
+    """Return ``text`` in exactly ``width`` columns: cut as `truncate`, then padded as `pad`.
+
+    >>> fit("The quick brown fox", 8, ellipsis="...")
+    'The q...'
+    >>> fit("ok", 5, align="right")
+    '   ok'
+
+    Raises what `truncate` and `pad` raise.
+    """
     return pad(truncate(text, width, ellipsis=ellipsis, side=side), width, align=align, fill=fill)

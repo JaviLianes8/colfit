@@ -37,8 +37,6 @@ def _words(line: list[Unit]) -> list[tuple[list[Unit], list[Unit]]]:
             word.append(unit)
     if word:
         out.append((spaces, word))
-    if out and out[0][0]:
-        out[0] = ([], out[0][0] + out[0][1])  # leading spaces are the indent
     return out
 
 
@@ -49,6 +47,11 @@ def _paragraph(text: str, width: int) -> list[list[Unit]]:
     carry: list[Unit] = []
     for spaces, word in _words(units(text)):
         size = sum(unit[1] for unit in word)
+        if spaces and not current and not lines:  # the indent of the paragraph
+            if size <= width < len(spaces) + size:
+                spaces = []  # the first word fits a line, but not after the indent
+            else:
+                word, size, spaces = spaces + word, size + len(spaces), []
         spaces, carry = carry + spaces, []
         if current and not size:
             # Escape sequences alone join the line; their spaces go to the next word.
@@ -88,7 +91,7 @@ def _paragraphs(text: str) -> list[str]:
 def wrap(
     text: str, width: int, *, max_lines: int | None = None, ellipsis: str = ELLIPSIS
 ) -> list[str]:
-    """Wrap ``text`` into lines of at most ``width`` columns.
+    r"""Wrap ``text`` into lines of at most ``width`` columns.
 
     Lines break at spaces; a word wider than ``width`` breaks between grapheme clusters.
     Line breaks in ``text`` start new paragraphs, and leading spaces of a paragraph are
@@ -96,6 +99,17 @@ def wrap(
     only case where a line is wider. With ``max_lines``, the lines after it are dropped
     and the last kept line ends with ``ellipsis``, followed by the escape sequences of
     the dropped text.
+
+    >>> wrap("The quick brown fox jumps", 10)
+    ['The quick', 'brown fox', 'jumps']
+    >>> wrap("The quick brown fox jumps", 10, max_lines=2, ellipsis="...")
+    ['The quick', 'brown f...']
+    >>> wrap("  Indented first line\nsecond paragraph", 12)
+    ['  Indented', 'first line', 'second', 'paragraph']
+
+    Raises ``TypeError`` for arguments of the wrong type and ``ValueError`` for a
+    ``width`` or ``max_lines`` below 1, or a line of ``text`` (or the ``ellipsis``)
+    holding a control character outside an escape sequence, such as a tab.
     """
     text_arg("text", text)
     int_arg("width", width, 1)

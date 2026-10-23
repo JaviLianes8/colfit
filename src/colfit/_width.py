@@ -62,11 +62,20 @@ def width_of(text: str) -> int:
 
 
 def display_width(text: str) -> int:
-    """Return the number of terminal columns ``text`` takes.
+    r"""Return the number of terminal columns ``text`` takes.
 
     Text is measured per extended grapheme cluster (UAX #29) with the Unicode 18.0.0
     tables: East Asian Wide and Fullwidth characters take two columns; marks, format,
     default ignorable and control characters none; an emoji sequence, a flag or a cluster
     with a spacing mark or a conjunct two. Escape sequences take none.
+
+    >>> display_width("abc"), display_width("\u65e5\u672c"), display_width("e\u0301")
+    (3, 4, 1)
+    >>> display_width("\U0001f468\u200d\U0001f469\u200d\U0001f467")  # one family emoji
+    2
+    >>> display_width("\x1b[31mred\x1b[0m")
+    3
+
+    Raises ``TypeError`` when ``text`` is not a ``str``.
     """
     return width_of(text_arg("text", text))

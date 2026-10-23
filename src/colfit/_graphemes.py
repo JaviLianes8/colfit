@@ -29,11 +29,20 @@ def _joined(before: str, after: str, emoji_zwj: bool, linker: bool, odd_ri: bool
 
 
 def graphemes(text: str) -> list[str]:
-    """Split ``text`` into extended grapheme clusters (UAX #29, Unicode 18.0.0).
+    r"""Split ``text`` into extended grapheme clusters (UAX #29, Unicode 18.0.0).
 
     A cluster is what a reader sees as one character: a letter with its accents, a
     Hangul syllable, an emoji sequence, a flag. Escape sequences get no special treatment
-    here.
+    here. Joining the clusters gives ``text`` back.
+
+    >>> graphemes("e\u0301a") == ["e\u0301", "a"]
+    True
+    >>> len(graphemes("\U0001f1ea\U0001f1f8\U0001f44d\U0001f3fd"))  # a flag, a thumb
+    2
+    >>> graphemes("")
+    []
+
+    Raises ``TypeError`` when ``text`` is not a ``str``.
     """
     text_arg("text", text)
     clusters: list[str] = []
