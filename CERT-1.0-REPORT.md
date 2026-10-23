@@ -170,10 +170,10 @@ their mutants (R02, S15, S22: all killed). Nothing is disputed.
 | D F3 | stdin split only at line ends, other controls exit 2, a leading BOM dropped |
 | E-1 to E-3 | contracts: only U+0020 breaks, ellipsis before dropped escapes, the 40/41 boundary |
 
-The note of lens c about a folder on the build machine is not a library item and went back
-to the orchestrator. Known limit, now documented: `columnize` takes up to the items times
-`width // (gap + 1)` for items laid out to defeat its bounds (16,000 items at width 16,000,
-half one column and half two wide, row order: 7.6 s).
+Lens c's note about a folder on the build machine is no library item; it went back to the
+orchestrator. Known limit, documented: `columnize` takes up to the items times `width //
+(gap + 1)` for items laid out against its bounds (16,000 items 1 or 2 wide, width 16,000,
+row order: 7.6 s).
 
 ### Disputed findings
 
@@ -193,8 +193,8 @@ install. No other interpreter is installed here.
 
 ## Gates (item 15)
 
-At 5af1a32 on another machine from a fresh clone (CPython 3.14.2, fetched sources and
-`wcwidth` 0.9.2 present, `COLFIT_E2E=1`), each command on its own: `ruff format --check .`,
+At 5af1a32 on another machine from a fresh clone (CPython 3.14.2, fetched sources,
+`wcwidth` 0.9.2, `COLFIT_E2E=1`), each on its own: `ruff format --check .`,
 `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (501 passed,
-1 skipped: the GNU ls comparison, as that machine has no `ls`) all exit 0. On this PC,
-where GNU ls is present, the same suite ran with no skips on every interpreter above.
+1 skipped: no `ls` there) exit 0; on this PC no skips on every interpreter above. QA round
+1, the tree of 5faad35 there, same setup: all five exit 0, `pytest` 653 passed, 1 skipped.
