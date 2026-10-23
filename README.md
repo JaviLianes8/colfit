@@ -132,10 +132,20 @@ dependency: cells cut to an exact width with an ellipsis at the end, the start o
 middle, written tie rules, escape sequences kept when text is cut, and `ls`-style columns
 (the same layout as GNU `ls`), all typed, on fixed Unicode 18.0.0 data.
 
-Its widths agree with `wcwidth` 0.9.2 on every single code point, on Indic syllables,
-Hangul and styled text, and its `wrap` gives the lines of `wcwidth.wrap` for words that fit
-a line. For ZWJ and skin tone sequences on a base without the emoji presentation selector,
-`colfit` follows UTS #51 and counts two columns where `wcwidth` counts one.
+Its widths agree with `wcwidth` 0.9.2 on every single code point (with its
+`control_codes="ignore"`: `colfit` counts control characters as zero), on Devanagari,
+Bengali, Gujarati, Oriya, Telugu and Malayalam syllables, on the spacing marks of Myanmar,
+Tai Tham and Ahom that Unicode puts in clusters of their own, and on Hangul and styled
+text. For one line of text with at least one word, whose words and indent fit a line, its
+`wrap` gives the lines of `wcwidth.wrap(text, width, break_on_hyphens=False)`.
+
+Where they differ, `colfit` counts the clusters Unicode makes. A ZWJ or skin tone sequence
+on a base without the emoji presentation selector is one emoji, two columns, where
+`wcwidth` counts one. Consonant, virama, consonant and vowel sign in a script whose virama
+Unicode does not treat as a linker (Kannada `ಕ್ಕಾ`, Gurmukhi, Sinhala, Tamil) are two
+clusters, three columns, where `wcwidth` counts one conjunct of two. A syllable that ends
+in a spacing virama (Balinese `ᬓ᭄`, Grantha) takes two columns where `wcwidth`
+counts one.
 
 Not covered: line breaking by UAX #14 (text without spaces breaks between any two
 characters), ambiguous characters as two columns, tab stops, and cursor movement
@@ -150,7 +160,10 @@ sequences (they count zero like every escape sequence).
 
 ## License
 
-MIT. See [LICENSE](https://github.com/JaviLianes8/colfit/blob/main/LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/colfit/blob/main/LICENSE). The width and
+grapheme tables are derived from the Unicode Character Database and ship with the
+[Unicode License v3](https://github.com/JaviLianes8/colfit/blob/main/LICENSES/Unicode-3.0.txt)
+notice.
 
 ## Links
 

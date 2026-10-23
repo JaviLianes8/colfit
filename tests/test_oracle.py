@@ -10,7 +10,7 @@ import unicodedata
 from collections.abc import Callable
 
 import pytest
-from conftest import code_points
+from conftest import LETTERS, STANDALONE_SPACING_MARKS, code_points
 
 from colfit import display_width, pad, wrap
 from colfit._unicode import conjunct_class
@@ -149,3 +149,27 @@ def test_left_and_right_padding_agree_with_wcwidth() -> None:
         width = rng.randint(0, 20)
         assert pad(text, width) == wcwidth.ljust(text, width)
         assert pad(text, width, align="right") == wcwidth.rjust(text, width)
+
+
+@pytest.mark.parametrize("code", STANDALONE_SPACING_MARKS, ids=lambda code: f"{code:04X}")
+def test_spacing_marks_in_clusters_of_their_own_agree(code: int) -> None:
+    text = LETTERS[code >> 8] + chr(code)
+    assert display_width(text) == _reference(text) == 2
+
+
+# Each difference the README lists: (text, colfit, wcwidth).
+DIFFERENCES = [
+    ("\u00a9\u200d\u00a9", 2, 1),  # a zwj sequence on text default bases
+    ("\u00a9\U0001f3fd", 2, 1),  # a skin tone modifier on a text default base
+    ("\u0c95\u0ccd\u0c95\u0cbe", 3, 2),  # Kannada: the virama is no linker
+    ("\u0a28\u0a4d\u0a39\u0a3e", 3, 2),  # Gurmukhi
+    ("\u0d9a\u0dca\u0dc2\u0dcf", 3, 2),  # Sinhala
+    ("\u0b95\u0bcd\u0b95\u0bbe", 3, 2),  # Tamil
+    ("\u1b13\u1b44", 2, 1),  # Balinese: a spacing virama
+    ("\U00011315\U0001134d", 2, 1),  # Grantha
+]
+
+
+@pytest.mark.parametrize(("text", "ours", "theirs"), DIFFERENCES)
+def test_the_differences_the_readme_lists(text: str, ours: int, theirs: int) -> None:
+    assert (display_width(text), _reference(text)) == (ours, theirs)

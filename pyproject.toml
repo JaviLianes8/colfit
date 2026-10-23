@@ -8,8 +8,9 @@ version = "1.0.0"
 description = "Fit text to terminal columns: grapheme-aware width, truncate, pad, wrap and columnize"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
-license-files = ["LICENSE"]
+# The Unicode notice covers the tables derived from the Unicode data (src/colfit/_tables.py).
+license = "MIT AND Unicode-3.0"
+license-files = ["LICENSE", "LICENSES/Unicode-3.0.txt"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
 keywords = [
     "terminal",

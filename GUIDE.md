@@ -11,12 +11,15 @@ from Unicode 18.0.0, so every Python version gives the same answer.
 - East Asian Wide and Fullwidth characters take two columns; ambiguous ones take one.
 - Marks, format characters, default ignorable code points, Hangul medial and final jamo,
   and control characters take none; the soft hyphen, drawn as a hyphen, takes one.
-- An emoji ZWJ sequence or skin tone modifier sequence, a flag and a single regional
-  indicator take two.
+- An emoji ZWJ sequence (a ZWJ between two pictographs), a flag, a single regional
+  indicator and a skin tone modifier after any emoji take two. The modifier rule is wider
+  than UTS #51, which shows a swatch after a base that has no skin tone form.
 - The emoji presentation selector (U+FE0F) makes a character with variation sequences two
   columns; the text presentation selector (U+FE0E) makes it one.
-- A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable two.
-- Escape sequences take none (see below).
+- A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable
+  two, and so does a spacing mark that Unicode puts in a cluster of its own (Myanmar, Tai
+  Tham, Ahom). A prepended character (U+0600, U+0D4E) adds its width before its cluster.
+- Escape sequences take none and never split a cluster (see below).
 
 ```python
 from colfit import display_width, graphemes
@@ -35,7 +38,8 @@ Terminals act on escape sequences (ECMA-48) but never draw them. colfit knows CS
 sequences (`ESC [` or the 8-bit CSI, as in colours), OSC strings (`ESC ]`, as in
 hyperlinks and titles, ended by ST or BEL), DCS, SOS, PM and APC strings up to ST, and any
 other `ESC` sequence. A sequence cut short by a character that cannot be part of it ends
-there.
+there; a control string also ends before an `ESC` that does not start ST and before `CAN`
+or `SUB`, as in the DEC terminal parser.
 
 They take no columns, they are never cut, and the ones in removed text are kept right
 after the ellipsis, so colours and links still close:
@@ -72,12 +76,16 @@ except ValueError as error:
 
 - `truncate` returns text that fits unchanged. Otherwise it replaces part of it with the
   ellipsis: at the end, at the start, or in the middle, where the start gets the odd
-  column. Clusters are never split, so next to a wide character the result can be a
-  column short; an ellipsis wider than the width is itself cut.
+  column. Clusters are never split, so the result can be short of the width by less than
+  the width of the cluster that did not fit; an ellipsis wider than the width is itself cut.
 - `pad` adds `fill` to reach the width and returns wider text unchanged. Centring puts the
   odd column on the right, as `format(text, "^5")` does (`str.center` and
   `wcwidth.center` put it on the left when the width is odd).
 - `fit` is `truncate` then `pad`: always exactly the width.
+- Results are measured as written. An ellipsis whose first character joins the last kept
+  cluster (a combining mark, a ZWJ, a variation selector) makes `truncate` keep less, and
+  text that starts with one gets its fill where the width comes out exact. A `fill` may
+  not be such a character.
 
 ```python
 from colfit import fit, pad, truncate
@@ -94,7 +102,8 @@ print("[" + fit("\u65e5\u672c\u8a9e", 4, ellipsis="") + "]")
 
 ## Wrapping
 
-- Lines break at spaces; spaces at a break are dropped, spaces between words are kept.
+- Lines break at spaces (U+0020 only: a no-break or ideographic space is part of a word);
+  spaces at a break are dropped, spaces between words are kept.
 - A word wider than the line starts a new line and breaks between clusters. A single
   cluster wider than the line gets a line of its own, the only line that can be wider.
 - Each line break in the text (any `str.splitlines` break outside escape sequences) starts
@@ -120,10 +129,11 @@ print(wrap("", 5), wrap("   ", 5))
 # [] ['']
 ```
 
-When every word and the indent fit a line, `wrap` gives the same lines as
-`textwrap.wrap(text, width, break_on_hyphens=False)` on ASCII text and as `wcwidth.wrap`
-with the same options on text with wide characters and emoji. Both break a long word to
-fill the current line, where `wrap` starts it on a new one.
+For one line of text with at least one word, when every word and the indent fit a line,
+`wrap` gives the same lines as `textwrap.wrap(text, width, break_on_hyphens=False)` on
+ASCII text and as `wcwidth.wrap` with the same options on text with wide characters and
+emoji. Both break a long word to fill the current line, where `wrap` starts it on a new
+one; both treat a line break as a space and give no lines for spaces alone.
 
 ## Columns
 
@@ -131,7 +141,11 @@ fill the current line, where `wrap` starts it on a new one.
 layout whose columns, each as wide as its widest cell, fit with `gap` spaces between
 them. Row order fills each row left to right; column order fills each column top to
 bottom with as few rows as that column count allows, like `ls`. Lines end without
-trailing spaces, and items wider than the width end up in a single column.
+trailing spaces, and items wider than the width end up in a single column. An item may
+not start with a mark that joins the text before it. With `gap=0` cells touch, so two
+that Unicode joins (two regional indicators make a flag) are drawn as one. Counts that the
+widest items or a row already make too wide are skipped without building the layout, so
+the time is at most the number of items times `width // (gap + 1)`.
 
 GNU `ls -C -w W` (and `ls -x` for row order) lays names out the same way as
 `columnize(names, W - 1)`: ls leaves the last screen column free and reserves at least
@@ -153,9 +167,6 @@ print(columnize(names, 38, gap=1, order="columns"))
 # LICENSE   src            CHANGELOG.md
 ```
 
-Each column count is tried from the most that could fit down, so the time grows with the
-number of items times `width // (gap + 1)`: linear for terminal widths.
-
 ## Errors
 
 Every public function raises `TypeError` for an argument of the wrong type (`bool` is not
@@ -165,10 +176,10 @@ characters of an argument.
 | Function | `ValueError` when |
 | --- | --- |
 | `truncate` | `width` below 0, unknown `side`, text or ellipsis with a control character |
-| `pad` | `width` below 0, unknown `align`, `fill` not one character one column wide |
+| `pad` | `width` below 0 or above `sys.maxsize`, unknown `align`, `fill` not one character one column wide or joining the text before it, text with a control character |
 | `fit` | any of the above |
 | `wrap` | `width` or `max_lines` below 1, a line or the ellipsis with a control character |
-| `columnize` | `width` below 1, `gap` below 0, unknown `order`, an item with a control character |
+| `columnize` | `width` below 1, `gap` below 0, unknown `order`, an item with a control character or starting with a joining mark |
 
 A control character here is one outside an escape sequence (C0, C1, U+2028, U+2029), or
 a text ending inside an unfinished sequence. Tabs are refused too: expand them first with
@@ -181,7 +192,8 @@ a text ending inside an unfinished sequence. Tabs are refused too: expand them f
   `GraphemeBreakTest.txt`, every fully qualified emoji of `emoji-test.txt`, and the
   generated tables rebuilt from the data files.
 - `wcwidth` 0.9.2 as an independent measure: every code point alone, every emoji of
-  `emoji-test.txt` (apart from ZWJ and modifier sequences on a text default base, which
-  UTS #51 draws as one emoji and `wcwidth` measures as text), Indic and Hangul syllables,
-  styled text, `wrap` against `wcwidth.wrap`, `pad` against `wcwidth.ljust` and `rjust`.
+  `emoji-test.txt` (apart from ZWJ and modifier sequences on a text default base, one
+  emoji for colfit and text for `wcwidth`), Devanagari, Bengali, Gujarati, Oriya, Telugu
+  and Malayalam syllables, the spacing marks of Myanmar, Tai Tham and Ahom, Hangul, styled
+  text, `wrap`, `ljust` and `rjust`, and each difference the README lists.
 - GNU `ls` run live on generated file names, `textwrap.wrap` and `format` alignment.

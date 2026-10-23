@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from ._check import text_arg
 from ._unicode import conjunct_class, grapheme_class
 
@@ -28,6 +30,31 @@ def _joined(before: str, after: str, emoji_zwj: bool, linker: bool, odd_ri: bool
     return before == after == "I" and odd_ri  # GB12, GB13
 
 
+def clusters(text: str) -> Iterator[str]:
+    """The extended grapheme clusters of ``text``, one at a time."""
+    start = 0
+    before = ""
+    emoji = False  # an Extended_Pictographic followed by Extend characters only
+    emoji_zwj = False  # the previous character is a ZWJ that follows such an emoji
+    linker = False  # a Linker followed by InCB Extend characters only
+    ri_run = 0
+    for index, char in enumerate(text):
+        after = grapheme_class(char)
+        conjunct = conjunct_class(char)
+        if index and not _joined(
+            before, after, emoji_zwj, linker and conjunct == "O", ri_run % 2 == 1
+        ):
+            yield text[start:index]
+            start = index
+        emoji_zwj = after == "J" and emoji
+        emoji = after == "Q" or (emoji and after == "E")
+        linker = conjunct == "K" or (linker and conjunct == "X")
+        ri_run = ri_run + 1 if after == "I" else 0
+        before = after
+    if text:
+        yield text[start:]
+
+
 def graphemes(text: str) -> list[str]:
     r"""Split ``text`` into extended grapheme clusters (UAX #29, Unicode 18.0.0).
 
@@ -44,27 +71,4 @@ def graphemes(text: str) -> list[str]:
 
     Raises ``TypeError`` when ``text`` is not a ``str``.
     """
-    text_arg("text", text)
-    clusters: list[str] = []
-    start = 0
-    before = ""
-    emoji = False  # an Extended_Pictographic followed by Extend characters only
-    emoji_zwj = False  # the previous character is a ZWJ that follows such an emoji
-    linker = False  # a Linker followed by InCB Extend characters only
-    ri_run = 0
-    for index, char in enumerate(text):
-        after = grapheme_class(char)
-        conjunct = conjunct_class(char)
-        if index and not _joined(
-            before, after, emoji_zwj, linker and conjunct == "O", ri_run % 2 == 1
-        ):
-            clusters.append(text[start:index])
-            start = index
-        emoji_zwj = after == "J" and emoji
-        emoji = after == "Q" or (emoji and after == "E")
-        linker = conjunct == "K" or (linker and conjunct == "X")
-        ri_run = ri_run + 1 if after == "I" else 0
-        before = after
-    if text:
-        clusters.append(text[start:])
-    return clusters
+    return list(clusters(text_arg("text", text)))

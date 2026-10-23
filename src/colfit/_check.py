@@ -6,6 +6,7 @@ import re
 from collections.abc import Sequence
 
 from ._escapes import is_open, pieces
+from ._unicode import grapheme_class, is_spacing_mark
 
 # C0 and C1 controls, and the Unicode line and paragraph separators.
 _CONTROL = re.compile("[\x00-\x1f\x7f-\x9f\u2028\u2029]")
@@ -65,4 +66,19 @@ def line_arg(name: str, value: object) -> str:
             raise ValueError(
                 f"{name} must be one line without control characters, found {found.group()!r}{hint}"
             )
+    return text
+
+
+def cell_arg(name: str, value: object) -> str:
+    """A `line_arg` whose first visible character does not join the text before it.
+
+    Such a character (a combining accent, a spacing vowel sign, a ZWJ) would join the
+    space or cell written before it and change that cluster's width.
+    """
+    text = line_arg(name, value)
+    visible = next((piece for piece, escape in pieces(text) if not escape), "")
+    if visible and (grapheme_class(visible[0]) in "EJS" or is_spacing_mark(visible[0])):
+        raise ValueError(
+            f"{name} must not start with a mark that joins the text before it, found {visible[0]!r}"
+        )
     return text

@@ -38,6 +38,7 @@ assert sorted(c.__all__) == public == sorted(
 meta = importlib.metadata.metadata("colfit")
 assert "Development Status :: 5 - Production/Stable" in meta.get_all("Classifier")
 assert meta["Requires-Python"] == ">=3.10"
+assert meta["License-Expression"] == "MIT AND Unicode-3.0"
 assert all("extra ==" in need for need in meta.get_all("Requires-Dist") or [])
 family = "\U0001f468\u200d\U0001f469\u200d\U0001f467"
 assert c.display_width(family + "\u65e5\x1b[31mx\x1b[0m") == 5
@@ -94,10 +95,12 @@ def test_built_artifacts_hold_what_they_should(tmp_path: Path) -> None:
     shipped = {p.relative_to(ROOT / "src").as_posix() for p in (ROOT / "src").rglob("*")}
     assert package == {name for name in shipped if name.endswith((".py", ".typed"))}
     assert "colfit-1.0.0.dist-info/licenses/LICENSE" in names
+    assert "colfit-1.0.0.dist-info/licenses/LICENSES/Unicode-3.0.txt" in names
     (sdist,) = dist.glob("colfit-1.0.0.tar.gz")
     with tarfile.open(sdist) as archive:
         members = {name.split("/", 1)[1] for name in archive.getnames() if "/" in name}
     assert {"LICENSE", "README.md", "GUIDE.md", "CHANGELOG.md", "pyproject.toml"} <= members
+    assert "LICENSES/Unicode-3.0.txt" in members
     assert "tests/sources/MANIFEST.txt" in members
     assert not [m for m in members if m.startswith("tests/sources/") and "MANIFEST" not in m]
     assert not [m for m in members if "IMPROVEMENTS" in m or "CERT-1.0" in m or ".github" in m]

@@ -65,6 +65,7 @@ def char_width(char: str) -> int:
     return 2 if value == "W" else 1 if value == "." else 0
 
 
+@lru_cache(maxsize=4096)
 def is_spacing_mark(char: str) -> bool:
     """Whether ``char`` is a spacing combining mark (General_Category Mc)."""
     return _WIDTH.get(ord(char), ".") == "M"

@@ -8,12 +8,14 @@ import random
 import pytest
 
 from colfit import columnize, display_width, fit, graphemes, truncate, wrap
-from colfit._width import units
+from colfit._width import escapes_of, units
 
 PIECES = [
     *"abcxyz",
     " ",
     "  ",
+    "\u00a0",  # no-break space: a word character, not a break
+    "\u3000",  # ideographic space: a wide word character
     "\u65e5",
     "\uff21",
     "e\u0301",
@@ -43,7 +45,7 @@ def _join(found: list[tuple[str, int, bool]]) -> str:
 
 
 def _escapes(found: list[tuple[str, int, bool]]) -> str:
-    return "".join(unit[0] for unit in found if unit[2])
+    return "".join(escapes_of(found))
 
 
 def _shapes(text: str, side: str, mark: str) -> set[str]:
@@ -120,7 +122,8 @@ def test_wrap_with_max_lines_keeps_every_escape() -> None:
 def test_columnize_fits_without_trailing_spaces() -> None:
     rng = random.Random(7)
     for _ in range(300):
-        items = [text for text in _samples(rng.randrange(10**6), rng.randint(1, 9)) if text]
+        # An item may not start with a mark that would join the cell before it.
+        items = ["x" + text for text in _samples(rng.randrange(10**6), rng.randint(1, 9))]
         width = rng.randint(1, 30)
         for order in ("rows", "columns"):
             out = columnize(items, width, gap=rng.randint(0, 3), order=order)

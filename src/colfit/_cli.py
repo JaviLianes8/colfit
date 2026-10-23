@@ -10,6 +10,7 @@ import shutil
 import sys
 from collections.abc import Callable, Sequence
 
+from ._check import shown
 from ._columns import Order, columnize
 
 
@@ -18,9 +19,11 @@ def _number(minimum: int) -> Callable[[str], int]:
         try:
             value = int(text)
         except ValueError:
-            raise argparse.ArgumentTypeError(f"expected a whole number, not {text!r}") from None
+            raise argparse.ArgumentTypeError(
+                f"expected a whole number, not {shown(text)}"
+            ) from None
         if value < minimum:
-            raise argparse.ArgumentTypeError(f"must be at least {minimum}, not {value}")
+            raise argparse.ArgumentTypeError(f"must be at least {minimum}, not {shown(value)}")
         return value
 
     return parse
@@ -52,8 +55,11 @@ def _parser() -> argparse.ArgumentParser:
 
 def _read_stdin() -> list[str]:
     if isinstance(sys.stdin, io.TextIOWrapper):
-        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
-    return [line for line in sys.stdin.read().splitlines() if line]
+        # utf-8-sig drops the byte order mark some Windows editors write first.
+        sys.stdin.reconfigure(encoding="utf-8-sig", errors="replace")
+    text = sys.stdin.read().replace("\r\n", "\n").replace("\r", "\n")
+    # Only line feeds separate items; any other control character is refused, as in ITEMs.
+    return [line for line in text.split("\n") if line]
 
 
 def _emit(text: str) -> None:
