@@ -14,7 +14,7 @@ Progress:
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15), final run; PR #3 and trace guard CLEAN
-- [x] QA rounds 1 to 7: every finding fixed (each round's commits below), none disputed
+- [x] QA rounds 1 to 8: every finding fixed (each round's commits below), none disputed
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -145,20 +145,19 @@ below): 19 failed on 1c0a3b7, all pass on b105d51, and the four lens e survivors
 | d F1b | `columnize` refuses a `gap` above `sys.maxsize` with `ValueError`; the `colfit` command reports it, and a `MemoryError`, with exit status 2; docstring, GUIDE, README and CHANGELOG updated |
 | e E2-1 to E2-4 | Contracts: Thai and Lao AM refused as a first character, stdin read with POSIX line ends too, escapes kept when no visible cluster can stay, a fill joining the end of the text for each `align` |
 
-## QA rounds 3 to 7 (item 19)
+## QA rounds 3 to 8 (item 19)
 
-Round 3: lenses b, d and e reported on f64a51f: b N2 and N3, d F1b and e's four round 2
-mutants confirmed fixed, and the first five rows below, fixed in 9b1342f. The N1 contract
-in `tests/test_contract_qa3.py` failed on f64a51f; lens e's five survivors (C09, C13, C16,
-C20, W12) and W13 (the new rule cut to spacing marks), each applied alone to 9b1342f, are
-killed by that file. W11 is equivalent: no prepended character takes zero columns. Round 4
-(lenses d and e, 537fc3e): d N1 and e's round 3 mutants confirmed fixed, and the next two
-rows, fixed in 1e15265 with contracts in `tests/test_contract_qa4.py`. Round 5 (lens e,
-9a652eb): round 4 confirmed fixed, the E5 rows closed in 8f2c1ad by `test_contract_qa5.py`
-(S05 to S09 and S13, each alone on 9a652eb, fail two to four of its tests). Round 6 (lens
-e, 7238d59): round 5 confirmed fixed, P01 equivalent (prepended characters are one column
-wide), E6-1 closed in a5f685d by `test_contract_qa6.py` (P10 alone fails all 30). Round 7
-(lens e, 1942835): round 6 holds; E7-1 fixed in 2faa548 (`test_contract_qa7.py`).
+Round 3 (lenses b, d and e, f64a51f): b N2 and N3, d F1b and e's four round 2 mutants hold,
+and the first five rows below, fixed in 9b1342f. The N1 contract in `test_contract_qa3.py`
+failed on f64a51f; lens e's five survivors (C09, C13, C16, C20, W12) and W13 (the rule cut
+to spacing marks), each alone on 9b1342f, fail it. W11 is equivalent (no prepended character
+is zero wide). Round 4 (lenses d and e, 537fc3e): d N1 and e's round 3 mutants hold, and the
+next two rows, fixed in 1e15265 (`test_contract_qa4.py`). Round 5 (lens e, 9a652eb): round 4
+holds, E5 closed in 8f2c1ad by `test_contract_qa5.py` (S05 to S09 and S13 alone fail 2 to 4
+of its tests). Round 6 (lens e, 7238d59): round 5 holds, P01 equivalent as W11, E6-1 closed
+in a5f685d by `test_contract_qa6.py` (P10 alone fails all 30). Round 7 (lens e, 1942835):
+round 6 holds; E7-1 fixed in 2faa548 (`test_contract_qa7.py`). Round 8 (lens e, 96b41b4):
+E7-1 holds, P01 and S14 equivalent; E8 closed in fa25ec6.
 
 | Finding | What changed |
 | --- | --- |
@@ -173,6 +172,7 @@ wide), E6-1 closed in a5f685d by `test_contract_qa6.py` (P10 alone fails all 30)
 | e E5-3 | Value kept at 1 and pinned: a medial or final jamo is a letter (gc Lo), a base in UAX #29, not Extend, so after a prepended character it is the zero-width base of the rest, as alone (U+1161 U+093E measures 0, U+0600 U+1161 U+093E measures 1); a ZWJ there still gives 2. The code comment and the GUIDE now say any jamo is a base |
 | e E6-1 | Value kept at 3 and pinned: the five Kirat Rai vowel signs (U+16D63, U+16D67 to U+16D6A) are letters (gc Lo, Grapheme_Cluster_Break=V) of one column, so after U+0600 or U+0D4E each is the base: before U+093E, U+094D U+0915 or U+0903 it measures 2 alone and 3 after the prepended character. The GUIDE now says a letter after it is a base |
 | e E7-1 | Value changed to the documented rule and pinned: a ZWJ that joins no two pictographs takes no columns and hides nothing, so the visible character after it keeps its width (`cluster_width` no longer skips it). Thai and Lao AM, U+FF9E, U+FF9F and the lightest and darkest skin tone modifiers after five leads and a ZWJ measure as without the ZWJ: `a` ZWJ U+0E33 2, U+FF76 ZWJ U+FF9E 2, `a` ZWJ U+1F3FB 3, U+4E2D ZWJ U+1F3FB 4; GUIDE and CHANGELOG updated. 34 of its 35 cases fail on 1942835, and lens e's mutant Q06 is now equivalent (a ZWJ itself takes no columns) |
+| e E8-1 to E8-4 | Values kept, as in 0.2.0, and pinned (19 cases; S08, S11, S12b, S18, S19 and S21, each alone on 96b41b4, fail two to four of them): after a visible prepended base an Extend or SpacingMark letter adds its width (U+0D4E U+FF9E 2, U+0D4E U+1F3FB 3, U+0600 U+0E33 2); a conjunct of three consonants takes 2, also with a ZWJ before a later consonant or with the Bengali linker; a presentation selector after marks or a ZWJ acts on the cluster base and never on a later pictograph (U+00A9 U+0301 U+FE0F 2, U+231A U+0301 U+FE0E 1, U+1F468 ZWJ U+2764 U+FE0E 2: S19 would make that one emoji one column; `wcwidth` 0.9.2 gives the four reported values too), now a GUIDE rule; marks or a ZWJ after a soft hyphen take none, only a spacing mark there widens it (GUIDE). No behaviour changed, so no CHANGELOG entry |
 
 ## Disputed findings
 
@@ -196,5 +196,5 @@ Each run on another machine from a fresh clone (CPython 3.14.2, fetched sources,
 0.9.2, `COLFIT_E2E=1`), each on its own: `ruff format --check .`, `ruff check .`,
 `mypy --strict src`, `mypy --strict src tests` and `pytest` exit 0, one skip there (no
 `ls`, which this PC has). `pytest` passed: 501 at 5af1a32, then 653, 684, 698, 711, 731,
-761 and 796 at the fixes of QA rounds 1 to 7 (5faad35, b105d51, 9b1342f, 1e15265, 8f2c1ad,
-a5f685d, 2faa548); each record commit changes only this report and passed them too.
+761, 796 and 815 at the QA round 1 to 8 fixes (5faad35, b105d51, 9b1342f, 1e15265, 8f2c1ad,
+a5f685d, 2faa548, fa25ec6); each record commit, changing only this report, passed too.
