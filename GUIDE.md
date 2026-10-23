@@ -17,9 +17,9 @@ from Unicode 18.0.0, so every Python version gives the same answer.
 - The emoji presentation selector (U+FE0F) makes a character with variation sequences two
   columns; the text presentation selector (U+FE0E) makes it one.
 - A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable
-  two, and so does a spacing mark that Unicode puts in a cluster of its own (Myanmar, Tai
-  Tham, Ahom) or after a prepended character with no other base (U+0600, U+0D4E); a
-  prepended character otherwise adds its width before its cluster.
+  two, and so does a spacing mark in a cluster of its own (Myanmar, Tai Tham, Ahom) or
+  after a prepended character with no other base (U+0600, U+0D4E), whatever marks or ZWJ
+  come between; a prepended character otherwise adds its width before its cluster.
 - Escape sequences take none and never split a cluster (see below).
 
 ```python
