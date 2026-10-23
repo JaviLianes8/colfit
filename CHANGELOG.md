@@ -30,6 +30,7 @@ command. From here on they change only in a new major version.
 - `columnize` skips column counts whose first row is already too wide and, in column
   order, layouts it has already tried, so wide widths take far less time. The layouts are
   the same.
+- The package no longer exposes a stray `annotations` name next to its public names.
 - `wrap` breaks a very long word in time proportional to its length; it used to take
   time proportional to the square of the length.
 

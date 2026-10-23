@@ -13,8 +13,7 @@
 '[  ok]'
 """
 
-from __future__ import annotations
-
+# No __future__ import here: it would add an "annotations" name to the package.
 from ._columns import Order, columnize
 from ._fit import Align, Side, fit, pad, truncate
 from ._graphemes import graphemes
