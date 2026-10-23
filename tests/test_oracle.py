@@ -12,7 +12,7 @@ from collections.abc import Callable
 import pytest
 from conftest import code_points
 
-from colfit import display_width
+from colfit import display_width, pad, wrap
 from colfit._unicode import conjunct_class
 
 wcwidth = pytest.importorskip("wcwidth")
@@ -105,3 +105,47 @@ def test_styled_and_linked_text_agrees() -> None:
     ]
     for text in samples:
         assert display_width(text) == _reference(text), text
+
+
+WORD_PIECES = [
+    "a",
+    "bc",
+    "\u65e5",
+    "\uff21",
+    "e\u0301",
+    "\U0001f44d\U0001f3fd",
+    "\u0915\u094d\u0937\u093f",
+    "\ud55c",
+]
+
+
+def _word(rng: random.Random, width: int) -> str:
+    word = rng.choice(WORD_PIECES[:2])
+    while rng.random() < 0.7:
+        piece = rng.choice(WORD_PIECES)
+        if display_width(word + piece) > width:
+            break
+        word += piece
+    return word
+
+
+def test_wrap_agrees_with_wcwidth_wrap_on_words_that_fit() -> None:
+    # Words no wider than the line and an indent no wider than the line; wcwidth.wrap
+    # keeps the textwrap rules and measures with its own tables.
+    rng = random.Random(29)
+    for _ in range(8000):
+        width = rng.randint(2, 24)
+        words = [_word(rng, width) for _ in range(rng.randint(1, 10))]
+        text = " " * rng.randint(0, width) + " ".join(words)
+        assert wrap(text, width) == wcwidth.wrap(text, width, break_on_hyphens=False), text
+
+
+def test_left_and_right_padding_agree_with_wcwidth() -> None:
+    # wcwidth.center follows str.center, which puts the odd column on the left for odd
+    # widths; pad follows format(), which always puts it on the right.
+    rng = random.Random(31)
+    for _ in range(8000):
+        text = "".join(rng.choices([*WORD_PIECES, " "], k=rng.randint(0, 6)))
+        width = rng.randint(0, 20)
+        assert pad(text, width) == wcwidth.ljust(text, width)
+        assert pad(text, width, align="right") == wcwidth.rjust(text, width)

@@ -18,7 +18,7 @@ def shown(value: object) -> str:
     try:
         text = repr(value)
     except Exception:  # an int past the digit limit, or a repr that fails
-        return f"a {type(value).__name__[:_SHOWN]}"
+        return f"<{type(value).__name__[:_SHOWN]} that cannot be shown>"
     return text if len(text) <= _SHOWN else text[: _SHOWN - 3] + "..."
 
 

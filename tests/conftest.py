@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
 SOURCES = Path(__file__).resolve().parent / "sources"
+
+
+def _manifest() -> dict[str, str]:
+    """sha256 of each fetched source, by name, as the tracked manifest records it."""
+    lines = (SOURCES / "MANIFEST.txt").read_text(encoding="utf-8").splitlines()
+    return {line.split()[2]: line.split()[0] for line in lines if line and line[0] != "#"}
 
 
 @pytest.fixture
@@ -18,7 +25,9 @@ def source() -> Callable[[str], str]:
         path = SOURCES / name
         if not path.is_file():
             pytest.skip(f"{name} not fetched; run python scripts/fetch_sources.py")
-        return path.read_text(encoding="utf-8")
+        data = path.read_bytes()
+        assert hashlib.sha256(data).hexdigest() == _manifest()[name], f"{name} was changed"
+        return data.decode("utf-8")
 
     return read
 
