@@ -30,18 +30,21 @@ on they change only in a new major version.
   terminator, and before `CAN` or `SUB`, as terminals end it. The text after such an
   interrupted string is measured again instead of counting as part of the string.
 - An escape sequence never splits a grapheme cluster: a flag, an emoji ZWJ sequence or an
-  accented letter with a colour code inside measures as without it.
+  accented letter with a colour code inside measures as without it, and a cluster holding
+  many escape sequences is cut, padded and wrapped in linear time.
 - A spacing mark that UAX #29 puts in a cluster of its own (31 code points in Myanmar,
   Tai Tham and Ahom) widens the syllable before it to two columns, as a spacing vowel
   sign inside a cluster does. `"\u1005\u102c"` measures 2, not 1.
 - A ZWJ joins an emoji into a two-column sequence only when another pictograph follows
   it: `"\u00a9\u200d\u0301"` measures 1, not 2.
 - Characters that Unicode prepends to a cluster (such as U+0D4E) add their own width
-  before it instead of taking the place of its base.
+  before it instead of taking the place of its base. A spacing mark right after a
+  visible prepended character still widens it to two columns, as in 0.2.0.
 - `truncate`, `fit` and `wrap` with `max_lines` measure the result with its ellipsis in
   place, so an ellipsis that joins the kept text (one starting with a combining mark,
-  a ZWJ or a variation selector) can no longer push it past the width. `pad` and `fit`
-  put the fill where it reaches the width when the text starts with such a character.
+  a ZWJ or a variation selector) can no longer push it past the width; the result may
+  then leave more columns free than the cluster that did not fit. `pad` and `fit` put the
+  fill where it reaches the width when the text starts or ends with such a character.
 - `pad` and `fit` refuse a `fill` that joins the text before it (a combining or spacing
   mark) and a `width` above `sys.maxsize` with `ValueError`; such a width used to raise
   `OverflowError` or `MemoryError`.
@@ -49,18 +52,26 @@ on they change only in a new major version.
   the text before it, with `ValueError` (exit status 2): the mark would have joined the
   space or cell before it and changed that line's width.
 - `columnize` builds the gap only between columns, so a gap wider than the width gives
-  one column instead of an `OverflowError` or a huge allocation, and `colfit -g` with a
-  huge number no longer ends in a traceback.
+  one column instead of a huge allocation. A `gap` above `sys.maxsize` raises
+  `ValueError` instead of `OverflowError`, and the `colfit` command reports it, or a gap
+  too large for memory, with exit status 2 instead of a traceback.
 - Error messages quote at most 40 characters of an argument, and an integer too large to
   print no longer breaks the message. The `colfit` command does the same for a bad
   `-w` or `-g` value.
 - The `colfit` command splits standard input only at line ends (`\n`, `\r\n`, `\r`) and
   refuses other control characters, such as a form feed, with exit status 2, as it does
   for items given as arguments. A byte order mark at the start of the input is dropped.
+- `columnize` counts an item that takes no column (empty, or escape sequences only) as
+  such when it works out how many columns could fit, so more columns can fit with such
+  items; it used to assume every item takes at least one column.
 - `columnize` skips column counts that its widest items or one of its rows already make
-  too wide, and in column order layouts it has already tried, so wide widths take far
-  less time. It no longer pads the last cell of a line, so a single column of long
-  items takes time in proportion to their length. The layouts are the same.
+  too wide, takes at once a count where every column could be as wide as the widest
+  item, and in column order skips layouts it has already tried. Its time is linear in
+  the number of items: a search that needs more than 32 passes over them beyond a fixed
+  allowance of about four million item visits (thousands of items across thousands of
+  columns) stops there and takes the most columns that fit when each is as wide as the
+  widest item. It no longer pads the last cell of a line, so a single column of long
+  items takes time in proportion to their length. Other layouts are the same.
 - `wrap` takes time in proportion to the length of a paragraph made of many escape
   sequences, or of many escape sequences between spaces; both used to take time in
   proportion to the square of it. It breaks a very long word in linear time too.

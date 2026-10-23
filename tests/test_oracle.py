@@ -102,6 +102,9 @@ def test_styled_and_linked_text_agrees() -> None:
         "\x1b]8;;https://example.com\x07link\x1b]8;;\x07",
         "\x1b[38;5;208m\u65e5\u672c\x1b[39m",
         "\x1b(Bplain",
+        "\U0001f1ea\x1b[0m\U0001f1f8",
+        "\U0001f44d\x1b[31m\U0001f3fd",
+        "a\u1000\x1b[31m\u102c",
     ]
     for text in samples:
         assert display_width(text) == _reference(text), text
@@ -167,9 +170,17 @@ DIFFERENCES = [
     ("\u0b95\u0bcd\u0b95\u0bbe", 3, 2),  # Tamil
     ("\u1b13\u1b44", 2, 1),  # Balinese: a spacing virama
     ("\U00011315\U0001134d", 2, 1),  # Grantha
+    ("\u0915\u094d\u0915\u094d,", 3, 2),  # a final virama: wcwidth drops what follows
+    ("\u0d28\u0d4d\u0d28\u0d4d \u0d2a", 4, 3),  # Malayalam, before a space
 ]
 
 
 @pytest.mark.parametrize(("text", "ours", "theirs"), DIFFERENCES)
 def test_the_differences_the_readme_lists(text: str, ours: int, theirs: int) -> None:
     assert (display_width(text), _reference(text)) == (ours, theirs)
+
+
+def test_wcwidth_parsing_escapes_splits_a_cluster_where_colfit_does_not() -> None:
+    # With control_codes="parse" (its default) an escape inside a cluster splits it.
+    text = "\U0001f1ea\x1b[0m\U0001f1f8"
+    assert (display_width(text), _reference(text), wcwidth.width(text)) == (2, 2, 4)

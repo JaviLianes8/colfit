@@ -28,6 +28,11 @@ def cluster_width(cluster: str) -> int:
     while start < len(cluster) - 1 and grapheme_class(cluster[start]) == "P":
         prepended += char_width(cluster[start])  # drawn before the cluster it joins
         start += 1
+    if start and is_spacing_mark(cluster[start]) and char_width(cluster[start - 1]):
+        # A spacing mark right after a visible prepended character widens it, as it
+        # widens any other base.
+        start -= 1
+        prepended -= char_width(cluster[start])
     base = cluster[start]
     width = char_width(base)
     emoji = grapheme_class(base) == "Q"
@@ -83,11 +88,12 @@ def units(text: str) -> list[Unit]:
         return [(cluster, width, False) for cluster, width in measured(text)]
     out: list[Unit] = []
     visible = measured("".join(piece for piece, escape in found if not escape))
-    cluster, width, missing, held = "", 0, 0, ""
+    width, missing = 0, 0
+    held: list[str] = []  # the pieces of the cluster being built, joined once at its end
     for piece, escape in found:
         if escape:
             if missing:
-                held += piece  # inside a cluster: it stays there
+                held.append(piece)  # inside a cluster: it stays there
             else:
                 out.append((piece, 0, True))
             continue
@@ -95,12 +101,12 @@ def units(text: str) -> list[Unit]:
         while at < len(piece):
             if not missing:
                 cluster, width = next(visible)
-                missing, held = len(cluster), ""
+                missing, held = len(cluster), []
             step = min(missing, len(piece) - at)
-            held += piece[at : at + step]
+            held.append(piece[at : at + step])
             at, missing = at + step, missing - step
             if not missing:
-                out.append((held, width, False))
+                out.append(("".join(held), width, False))
     return out
 
 

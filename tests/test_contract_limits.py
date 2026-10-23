@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import time
 import tracemalloc
 from collections.abc import Callable
@@ -54,8 +55,8 @@ def test_columnize_is_not_quadratic_when_two_wide_items_never_share_a_row(order:
 
 
 def test_a_gap_wider_than_the_line_gives_one_column_without_building_it() -> None:
-    assert columnize(["a"], 80, gap=2**63) == "a"
-    assert columnize(["a", "b"], 5, gap=10**30) == "a\nb"
+    assert columnize(["a"], 80, gap=sys.maxsize) == "a"
+    assert columnize(["a", "b"], 5, gap=sys.maxsize) == "a\nb"
     tracemalloc.start()
     try:
         assert columnize(["a", "b"], 5, gap=10**8) == "a\nb"

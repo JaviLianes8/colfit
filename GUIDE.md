@@ -18,7 +18,8 @@ from Unicode 18.0.0, so every Python version gives the same answer.
   columns; the text presentation selector (U+FE0E) makes it one.
 - A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable
   two, and so does a spacing mark that Unicode puts in a cluster of its own (Myanmar, Tai
-  Tham, Ahom). A prepended character (U+0600, U+0D4E) adds its width before its cluster.
+  Tham, Ahom) or right after a prepended character (U+0600, U+0D4E), which otherwise adds
+  its width before its cluster.
 - Escape sequences take none and never split a cluster (see below).
 
 ```python
@@ -83,9 +84,10 @@ except ValueError as error:
   `wcwidth.center` put it on the left when the width is odd).
 - `fit` is `truncate` then `pad`: always exactly the width.
 - Results are measured as written. An ellipsis whose first character joins the last kept
-  cluster (a combining mark, a ZWJ, a variation selector) makes `truncate` keep less, and
-  text that starts with one gets its fill where the width comes out exact. A `fill` may
-  not be such a character.
+  cluster (a combining mark, a ZWJ, a variation selector) makes `truncate` keep less, so
+  more columns can stay free; with an empty ellipsis in the middle the kept ends meet and
+  can join too (two lone regional indicators make a flag). Text that starts or ends with
+  such a character gets its fill where the width comes out exact; a `fill` may not be one.
 
 ```python
 from colfit import fit, pad, truncate
@@ -138,14 +140,15 @@ one; both treat a line break as a space and give no lines for spaces alone.
 ## Columns
 
 `columnize` tries the most columns that could fit, then one fewer, and takes the first
-layout whose columns, each as wide as its widest cell, fit with `gap` spaces between
-them. Row order fills each row left to right; column order fills each column top to
-bottom with as few rows as that column count allows, like `ls`. Lines end without
-trailing spaces, and items wider than the width end up in a single column. An item may
-not start with a mark that joins the text before it. With `gap=0` cells touch, so two
-that Unicode joins (two regional indicators make a flag) are drawn as one. Counts that the
-widest items or a row already make too wide are skipped without building the layout, so
-the time is at most the number of items times `width // (gap + 1)`.
+layout whose columns, each as wide as its widest cell, fit with `gap` spaces between them.
+Row order fills each row left to right; column order fills each column top to bottom with
+as few rows as that column count allows, like `ls`. Lines end without trailing spaces, and
+items wider than the width end up in a single column. An item may not start with a mark
+that joins the text before it; an empty one adds only its gap. With `gap=0` cells touch,
+so two that Unicode joins (two regional indicators make a flag) are drawn as one. The time
+is linear in the number of items: beyond 32 passes over them and about four million item
+visits, the search takes the most columns that fit when each is as wide as the widest
+item. A gap too large for memory raises `MemoryError`.
 
 GNU `ls -C -w W` (and `ls -x` for row order) lays names out the same way as
 `columnize(names, W - 1)`: ls leaves the last screen column free and reserves at least
@@ -170,8 +173,7 @@ print(columnize(names, 38, gap=1, order="columns"))
 ## Errors
 
 Every public function raises `TypeError` for an argument of the wrong type (`bool` is not
-a width) and `ValueError` for a value it cannot use. Messages quote at most 40
-characters of an argument.
+a width) and `ValueError` for a value it cannot use; messages quote at most 40 characters.
 
 | Function | `ValueError` when |
 | --- | --- |
@@ -179,7 +181,7 @@ characters of an argument.
 | `pad` | `width` below 0 or above `sys.maxsize`, unknown `align`, `fill` not one character one column wide or joining the text before it, text with a control character |
 | `fit` | any of the above |
 | `wrap` | `width` or `max_lines` below 1, a line or the ellipsis with a control character |
-| `columnize` | `width` below 1, `gap` below 0, unknown `order`, an item with a control character or starting with a joining mark |
+| `columnize` | `width` below 1, `gap` below 0 or above `sys.maxsize`, unknown `order`, an item with a control character or starting with a joining mark |
 
 A control character here is one outside an escape sequence (C0, C1, U+2028, U+2029), or
 a text ending inside an unfinished sequence. Tabs are refused too: expand them first with
@@ -192,8 +194,7 @@ a text ending inside an unfinished sequence. Tabs are refused too: expand them f
   `GraphemeBreakTest.txt`, every fully qualified emoji of `emoji-test.txt`, and the
   generated tables rebuilt from the data files.
 - `wcwidth` 0.9.2 as an independent measure: every code point alone, every emoji of
-  `emoji-test.txt` (apart from ZWJ and modifier sequences on a text default base, one
-  emoji for colfit and text for `wcwidth`), Devanagari, Bengali, Gujarati, Oriya, Telugu
-  and Malayalam syllables, the spacing marks of Myanmar, Tai Tham and Ahom, Hangul, styled
-  text, `wrap`, `ljust` and `rjust`, and each difference the README lists.
+  `emoji-test.txt`, Devanagari, Bengali, Gujarati, Oriya, Telugu and Malayalam syllables,
+  the spacing marks of Myanmar, Tai Tham and Ahom, Hangul, styled text, `wrap`, `ljust`
+  and `rjust`, apart from the differences the README lists, each checked too.
 - GNU `ls` run live on generated file names, `textwrap.wrap` and `format` alignment.

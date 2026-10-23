@@ -43,7 +43,10 @@ def truncate(text: str, width: int, *, ellipsis: str = ELLIPSIS, side: Side = "e
     cluster that did not fit. Escape sequences of the removed text are kept right after
     the ellipsis. An ellipsis wider than ``width`` is itself cut. The result is measured
     as a whole, so an ellipsis that joins the text next to it (one that starts with a
-    combining mark) still fits.
+    combining mark) still fits, and may leave more columns free than that bound. With an
+    empty ellipsis in the middle the kept start and end meet, and Unicode may join them
+    into one cluster as it would any two strings (two lone regional indicators make a
+    flag), so the result can be shorter still.
 
     >>> truncate("The quick brown fox", 12, ellipsis="...")
     'The quick...'

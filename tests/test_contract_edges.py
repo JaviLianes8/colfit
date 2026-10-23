@@ -97,7 +97,7 @@ def test_spaces_alone_are_one_empty_line_and_no_text_no_line() -> None:
 def _reference(items: list[str], width: int, gap: int, order: str) -> str:
     """The plain search: every column count from the most down, every layout built."""
     count = len(items)
-    for ncols in range(min(count, max(1, (width + gap) // (1 + gap))), 0, -1):
+    for ncols in range(count, 0, -1):
         nrows = -(-count // ncols)
         if order == "rows":
             grid = [list(range(c, count, ncols)) for c in range(ncols)]
@@ -127,6 +127,17 @@ def test_the_column_search_finds_what_the_plain_search_finds(order: Order) -> No
             "".join(rng.choices(pieces, k=rng.randint(1, 4))) for _ in range(rng.randint(1, 30))
         ]
         width, gap = rng.randint(1, 60), rng.randint(0, 3)
+        assert columnize(items, width, gap=gap, order=order) == _reference(items, width, gap, order)
+
+
+@pytest.mark.parametrize("order", ["rows", "columns"])
+def test_the_column_search_counts_items_that_take_no_column(order: Order) -> None:
+    rng = random.Random(2027)
+    pieces = ["", "", "a", "bb", "\u65e5", "\x1b[1m\x1b[0m"]
+    for _ in range(3000):
+        size = rng.randint(1, 9)
+        items = ["".join(rng.choices(pieces, k=rng.randint(1, 2))) for _ in range(size)]
+        width, gap = rng.randint(1, 12), rng.randint(0, 4)
         assert columnize(items, width, gap=gap, order=order) == _reference(items, width, gap, order)
 
 

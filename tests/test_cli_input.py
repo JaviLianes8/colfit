@@ -22,8 +22,10 @@ def _tool(*argv: str, stdin: bytes = b"") -> subprocess.CompletedProcess[bytes]:
     )
 
 
-def _stdin(monkeypatch: pytest.MonkeyPatch, data: bytes) -> None:
-    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(data), encoding="cp1252"))
+def _stdin(monkeypatch: pytest.MonkeyPatch, data: bytes, newline: str | None = "\n") -> None:
+    # POSIX opens stdin with newline="\n", so a CR reaches the tool; Windows translates it.
+    stream = io.TextIOWrapper(io.BytesIO(data), encoding="cp1252", newline=newline)
+    monkeypatch.setattr(sys, "stdin", stream)
 
 
 @pytest.mark.parametrize("control", ["\f", "\v", "\x1c", "\x1e", "\x85", "\u2028", "\u2029"])
@@ -37,10 +39,11 @@ def test_stdin_items_are_split_only_at_line_ends_and_other_controls_refused(
     assert "control characters" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("newline", ["\n", None], ids=["posix", "windows"])
 def test_stdin_line_ends_of_every_platform_still_separate_items(
-    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, newline: str | None
 ) -> None:
-    _stdin(monkeypatch, b"a\r\nb\rc\n\nd")
+    _stdin(monkeypatch, b"a\r\nb\rc\n\nd", newline)
     assert main(["-w", "40"]) == 0
     assert capsys.readouterr().out == "a  b  c  d\n"
 
@@ -59,10 +62,18 @@ def test_a_form_feed_read_from_a_real_pipe_exits_two() -> None:
     assert b"control characters" in result.stderr
 
 
-@pytest.mark.parametrize("gap", ["9223372036854775808", "1" + "0" * 30])
+@pytest.mark.parametrize("gap", ["9223372036854775807", "4000000000"])
 def test_a_huge_gap_gives_one_column_without_a_traceback(gap: str) -> None:
     result = _tool("-g", gap, "-w", "5", "a", "b")
     assert (result.returncode, result.stdout.split(), result.stderr) == (0, [b"a", b"b"], b"")
+
+
+@pytest.mark.parametrize("gap", ["9223372036854775808", "1" + "0" * 30])
+def test_a_gap_past_sys_maxsize_exits_two_with_a_short_message(gap: str) -> None:
+    result = _tool("-g", gap, "-w", "5", "a", "b")
+    assert (result.returncode, result.stdout) == (2, b"")
+    assert b"gap must be at most sys.maxsize" in result.stderr
+    assert b"Traceback" not in result.stderr
 
 
 @pytest.mark.parametrize(

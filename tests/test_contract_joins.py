@@ -36,7 +36,10 @@ def test_a_fill_that_joins_the_text_before_it_is_refused() -> None:
             pad("a", 3, fill=fill)
 
 
-@pytest.mark.parametrize("item", ["\u093fx", "\u0301", "\u200dx", "\u102cx", "\x1b[1m\u0301x"])
+@pytest.mark.parametrize(
+    "item",
+    ["\u093fx", "\u0301", "\u200dx", "\u102cx", "\x1b[1m\u0301x", "\u0e33x", "\u0eb3x"],
+)
 def test_columnize_refuses_an_item_that_starts_with_a_joining_mark(item: str) -> None:
     with pytest.raises(ValueError, match="item must not start with a mark that joins"):
         columnize(["ab", item], 5)

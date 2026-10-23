@@ -89,5 +89,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         text = columnize(items, max(width, 1), gap=args.gap, order=order)
     except ValueError as error:
         parser.error(str(error))
+    except MemoryError:
+        parser.error("not enough memory for this layout; try a smaller gap")
     _emit(text)
     return 0
