@@ -56,6 +56,11 @@ Changelog = "https://github.com/JaviLianes8/colfit/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
 Funding = "https://buymeacoffee.com/jlianesglrs"
 
+[tool.hatch.build.targets.sdist]
+# Third-party test files are fetched locally and never shipped (they are git-ignored);
+# only their manifest is. Working notes of the release rounds stay in the repository.
+exclude = ["IMPROVEMENTS-round*.md", "CERT-1.0-*.md", ".github"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/colfit"]
 
