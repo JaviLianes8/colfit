@@ -16,13 +16,11 @@ Progress:
 - [x] Packaging, e2e, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15), final run
 - [x] PR #3 and trace guard CLEAN
-- [x] QA round 1: every finding fixed (e97dc62), none disputed
-- [x] QA round 2: every finding fixed (b105d51), none disputed
-- [x] QA round 3: every finding fixed (9b1342f), none disputed
+- [x] QA rounds 1 to 4: every finding fixed (e97dc62, b105d51, 9b1342f, 1e15265), none disputed
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
-## Scorecard (author)
+## Scorecard (author; items 16, 17 and 19 belong to the reviewer, maintainer and QA lenses)
 
 | # | Item | Result |
 | --- | --- | --- |
@@ -42,8 +40,6 @@ Progress:
 | 14 | sdist and wheel contents | PASS: asserted file by file in `tests/test_e2e_wheel.py`; the Unicode License v3 notice ships (QA round 1) |
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 18 | Contracts bite (mutations) | PASS: 41 author mutants, 37 killed at once, 3 killed after new contracts, 1 equivalent |
-
-Items 16, 17 and 19 belong to the independent reviewer, the maintainer and the QA lenses.
 
 ## Baseline on 0.2.0 (before any change)
 
@@ -121,20 +117,16 @@ them; F3 is equivalent (an ellipsis exactly as wide as the width keeps every uni
 ## QA round 1 (item 19)
 
 Five lenses (a API and docs, b ground truth, c adversarial, d packaging, e mutations) ran
-on e57a74b. Every finding is fixed in e97dc62. Each behaviour bug got a contract first,
-shown to fail on e57a74b, then the fix; the three mutation findings were re-run against
-their mutants (R02, S15, S22: all killed). Nothing is disputed.
+on e57a74b. Every finding is fixed in e97dc62, each behaviour bug with a contract shown to
+fail on e57a74b first; the mutants of the three mutation findings (R02, S15, S22) are killed.
 
 | Lens | What changed |
 | --- | --- |
 | a (A1 to A9) | `cut` measures the result with its ellipsis and keeps less until it fits; `pad` measures the fill joined to the text; a joining `fill` or item is refused (`test_contract_joins.py`, seeded fuzz included) (A1, with c C4); `wrap` docstring states the indent rule (A2); README and GUIDE name `break_on_hyphens=False`, spaces alone and line breaks (A3, A4, with b F5); GUIDE errors table complete for `pad` (A5); CHANGELOG on docstrings and the `Literal` aliases (A6); 0.2.0 and 0.1.0 dated and marked never uploaded (A7); CONTRIBUTING names the tests that run real programs (A8); `truncate` says how short a result can be (A9) |
 | b (F1 to F5) | a spacing mark in a cluster of its own widens the syllable before it (F1, 31 code points, `wcwidth` oracle); README "Why" states what was measured and each difference, pinned in `test_oracle.py` (F2); a ZWJ makes one emoji only before a pictograph (F3); control strings end before an ESC that does not start ST, and before CAN or SUB (F4) |
-| c (C1 to C9) | `wrap` joins each paragraph once (C1, C2); `columnize` skips counts its 16 widest items or a row make too wide and pads no last cell (C3); clusters are found in the visible text (C5); the gap is built only between columns (C6, with d F1); `pad` and `fit` refuse a width above `sys.maxsize` (C7); the CLI quotes at most 40 characters of a bad number (C8); `truncate` slices ASCII and `display_width` streams (C9) |
+| c (C1 to C9) | `wrap` joins each paragraph once (C1, C2); `columnize` skips counts its 16 widest items or a row make too wide and pads no last cell (C3); clusters are found in the visible text (C5); the gap is built only between columns (C6, with d F1); `pad` and `fit` refuse a width above `sys.maxsize` (C7); the CLI quotes at most 40 characters of a bad number (C8); `truncate` slices ASCII and `display_width` streams (C9); the limit of `columnize` added then (the items times `width // (gap + 1)`) failed item 9, and round 2 removed it |
 | d (F1 to F3) | the Unicode License v3 notice ships (`LICENSES/Unicode-3.0.txt`, fetched from unicode.org/license.txt, sha256 e7a93b00...), licence `MIT AND Unicode-3.0` (F2); stdin split only at line ends, other controls exit 2, a leading BOM dropped (F3) |
 | e (E-1 to E-3) | contracts: only U+0020 breaks, ellipsis before dropped escapes, the 40/41 boundary |
-
-Lens c's note about a folder on the build machine went back to the orchestrator. The round
-1 limit of `columnize` (the items times `width // (gap + 1)`) failed item 9; round 2 removed it.
 
 ## QA round 2 (item 19)
 
@@ -171,6 +163,16 @@ killed by that file. W11 is equivalent: no prepended character takes zero column
 | d N1, e E3-0 | This report is back under 200 lines (two mutants per table row, round 1 grouped by lens); the gates ran at 9b1342f and again on the tree of this record commit (see Gates) |
 | e E3-1 to E3-5 | Contracts: 500 mixed items equal the plain search in both orders; the fallback with `gap=1` takes 30,665 columns at width 91,994; skewed widths in column order give the 11 rows of a search with no limit; a gap of 4,000 or 5,000 digits is quoted in at most 100 characters; U+102C U+0E33 measures 1, as in `wcwidth` |
 
+## QA round 4 (item 19)
+
+Lenses d and e reported on 537fc3e: d N1 and e's round 3 mutants confirmed fixed, and what
+follows, all fixed in 1e15265 with contracts in `tests/test_contract_qa4.py`.
+
+| Finding | What changed |
+| --- | --- |
+| d Q1, e E4-1 | A ZWJ right after a visible prepended character is one more mark on it (`_is_mark`), so a spacing mark after it widens it whatever the order of the marks: `"\u0600\u200d\u093e"` measures 2, as `"a\u200d\u093e"` does and as in 0.2.0. Its contracts failed on 537fc3e; 40,000 seeded tails of marks and ZWJ after the 27 prepended characters now measure as after `a`; GUIDE and CHANGELOG updated |
+| e E4-2 to E4-4 | Contracts, each killing its survivor applied alone to 1e15265: U+102B and U+102C (Mc, not SpacingMark) after U+0600 measure 2 (N02); Thai and Lao AM after U+0600, before a vowel sign or a virama and consonant, measure as after `a` (N04); two to four prepended characters before nonspacing marks or a ZWJ count once each (N13) |
+
 ## Disputed findings
 
 None, in any round.
@@ -185,16 +187,14 @@ manifest but no fetched file, release notes or caches, install the wheel in a ne
 run a program and the CLI from an empty folder, and type-check a consumer against the
 install): CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2 free-threaded all
 pass with no skips. CPython 3.8.20 and 3.9.25 are below `requires-python` and refuse the
-install. No other interpreter is installed here. At 9b1342f (QA round 3): 699 passed on each.
+install. No other interpreter is installed here. At 537fc3e: 690 passed, 2 skipped on each.
 
 ## Gates (item 15)
 
-At 5af1a32 on another machine from a fresh clone (CPython 3.14.2, fetched sources,
-`wcwidth` 0.9.2, `COLFIT_E2E=1`), each on its own: `ruff format --check .`,
-`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (501 passed,
-1 skipped: no `ls` there) exit 0; on this PC no skips on every interpreter above. QA round
-1, the tree of 5faad35 there, same setup: all five exit 0, `pytest` 653 passed, 1 skipped.
-QA round 2, the tree of b105d51 there: all five exit 0, `pytest` 684 passed, 1 skipped.
-QA round 3, the tree of 9b1342f there: all five exit 0, `pytest` 698 passed, 1 skipped
-(no `ls` there; `test_reference_programs.py` passes on this PC). This record commit changes
-only this report; the same five ran on its own tree before it was pushed: all exit 0.
+Each run on another machine from a fresh clone (CPython 3.14.2, fetched sources, `wcwidth`
+0.9.2, `COLFIT_E2E=1`), each on its own: `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `pytest` exit 0, one skip there (no `ls`;
+`test_reference_programs.py` passes on this PC). `pytest` passed: 501 at 5af1a32, 653 at
+5faad35 (QA round 1), 684 at b105d51 (round 2), 698 at 9b1342f (round 3), 711 at 1e15265
+(round 4). Each record commit changes only this report; the same five ran on its tree
+before it was pushed: all exit 0.
