@@ -14,7 +14,7 @@ Progress:
 - [x] Contract, fuzz and author mutation round (items 6, 9, 18)
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e, every Python (items 8, 10, 13, 14)
-- [ ] Gates (item 15), final run
+- [x] Gates (item 15), final run
 - [ ] PR and trace guard
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
@@ -173,4 +173,8 @@ install. No other interpreter is installed here.
 
 ## Gates (item 15)
 
-Pending the final run.
+At 5af1a32 on another machine from a fresh clone (CPython 3.14.2, fetched sources and
+`wcwidth` 0.9.2 present, `COLFIT_E2E=1`), each command on its own: `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (501 passed,
+1 skipped: the GNU ls comparison, as that machine has no `ls`) all exit 0. On this PC,
+where GNU ls is present, the same suite ran with no skips on every interpreter above.
