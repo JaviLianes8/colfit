@@ -57,8 +57,8 @@ def cluster_width(cluster: str) -> int:
             width = 2
         elif width and conjunct_class(char) == "O":
             width = 2  # consonant, linker, consonant: one conjunct
-        elif previous != _ZWJ and grapheme_class(char) != "I":
-            width += char_width(char)
+        elif grapheme_class(char) != "I":
+            width += char_width(char)  # a ZWJ outside an emoji sequence hides nothing
         previous = char
     return prepended + width
 

@@ -37,6 +37,9 @@ on they change only in a new major version.
   sign inside a cluster does. `"\u1005\u102c"` measures 2, not 1.
 - A ZWJ joins an emoji into a two-column sequence only when another pictograph follows
   it: `"\u00a9\u200d\u0301"` measures 1, not 2.
+- A visible character after a ZWJ that joins no two pictographs keeps its own width
+  instead of taking none, so the ZWJ changes no width: `"a\u200d\u0e33"` measures 2,
+  as `"a\u0e33"` does, not 1, and `"a\u200d\U0001f3fb"` measures 3, not 1.
 - Characters that Unicode prepends to a cluster (such as U+0D4E) add their own width
   before it instead of taking the place of its base. A spacing mark after a visible
   prepended character, in a cluster with no other base (right after it or after other

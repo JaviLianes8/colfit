@@ -9,8 +9,8 @@ run of comment lines right under the code holds what the code prints.
 from Unicode 18.0.0, so every Python version gives the same answer.
 
 - East Asian Wide and Fullwidth characters take two columns; ambiguous ones take one.
-- Marks, format characters, default ignorable code points, Hangul medial and final jamo,
-  and control characters take none; the soft hyphen, drawn as a hyphen, takes one.
+- Marks, format characters (a ZWJ hides nothing after it), default ignorable code points,
+  Hangul medial and final jamo and control characters take none; a soft hyphen takes one.
 - An emoji ZWJ sequence (a ZWJ between two pictographs), a flag, a single regional
   indicator and a skin tone modifier after any emoji take two. The modifier rule is wider
   than UTS #51, which shows a swatch after a base that has no skin tone form.
