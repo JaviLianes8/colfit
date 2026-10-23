@@ -38,3 +38,13 @@ def pieces(text: str) -> list[tuple[str, bool]]:
 def strip(text: str) -> str:
     """``text`` without its escape sequences."""
     return "".join(piece for piece, escape in pieces(text) if not escape)
+
+
+def is_open(sequence: str) -> bool:
+    """Whether an escape sequence at the end of a text would take in what follows it.
+
+    A CSI without its final byte, a control string without its terminator or a lone ESC:
+    anything written after it (padding, the next cell) would become part of it.
+    """
+    found = SEQUENCE.match(sequence + "a")
+    return found is not None and found.end() > len(sequence)

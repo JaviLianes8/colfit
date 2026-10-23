@@ -4,21 +4,27 @@ from __future__ import annotations
 
 from ._check import int_arg, line_arg, text_arg
 from ._escapes import pieces
-from ._fit import ELLIPSIS, cut, take
+from ._fit import ELLIPSIS, cut
 from ._width import Unit, units
 
 
 def _chunks(word: list[Unit], width: int) -> list[list[Unit]]:
     """Break a word too wide for a line at cluster boundaries."""
     out = []
-    while word:
-        count = take(word, width)
-        while count < len(word) and not any(unit[1] for unit in word[:count]):
-            count += 1  # a cluster wider than the line still has to go somewhere: alone
-        if not any(unit[1] for unit in word[count:]):
-            count = len(word)  # zero-width clusters and escapes stay with the text before them
-        out.append(word[:count])
-        word = word[count:]
+    last = max((index for index, unit in enumerate(word) if unit[1]), default=-1)
+    start = 0
+    while start < len(word):
+        end, used = start, 0
+        while end < len(word) and used + word[end][1] <= width:
+            used += word[end][1]
+            end += 1
+        while end < len(word) and not used:
+            used += word[end][1]  # a cluster wider than the line still has to go somewhere
+            end += 1
+        if end > last:
+            end = len(word)  # zero-width clusters and escapes stay with the text before them
+        out.append(word[start:end])
+        start = end
     return out
 
 
@@ -109,7 +115,8 @@ def wrap(
 
     Raises ``TypeError`` for arguments of the wrong type and ``ValueError`` for a
     ``width`` or ``max_lines`` below 1, or a line of ``text`` (or the ``ellipsis``)
-    holding a control character outside an escape sequence, such as a tab.
+    holding a control character outside an escape sequence, such as a tab, or ending
+    inside an unfinished one.
     """
     text_arg("text", text)
     int_arg("width", width, 1)

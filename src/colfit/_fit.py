@@ -74,7 +74,8 @@ def truncate(text: str, width: int, *, ellipsis: str = ELLIPSIS, side: Side = "e
 
     Raises ``TypeError`` for arguments of the wrong type and ``ValueError`` for a
     negative ``width``, an unknown ``side``, or ``text`` or ``ellipsis`` holding a line
-    break or another control character outside an escape sequence.
+    break or another control character outside an escape sequence, or ending inside an
+    unfinished one.
     """
     line_arg("text", text)
     int_arg("width", width, 0)
@@ -109,7 +110,8 @@ def pad(text: str, width: int, *, align: Align = "left", fill: str = " ") -> str
 
     Raises ``TypeError`` for arguments of the wrong type and ``ValueError`` for a
     negative ``width``, an unknown ``align``, a ``fill`` that is not one character one
-    column wide, or ``text`` holding a control character outside an escape sequence.
+    column wide, or ``text`` holding a control character outside an escape sequence or
+    ending inside an unfinished one.
     """
     line_arg("text", text)
     int_arg("width", width, 0)

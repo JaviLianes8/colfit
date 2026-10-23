@@ -20,11 +20,18 @@ command. From here on they change only in a new major version.
   `textwrap` does, instead of the word being split.
 - `side`, `align` and `order` values that are not `str` raise `TypeError`, like every
   other argument of the wrong type, instead of `ValueError`.
+- `truncate`, `pad`, `fit`, `wrap` and `columnize` refuse text (and an ellipsis or item)
+  that ends inside an unfinished escape sequence, such as a lone `ESC` or a hyperlink
+  without its terminator, with `ValueError`: the padding, ellipsis or next cell written
+  after it would have become part of the sequence and never been drawn. `display_width`
+  and `graphemes` still take any text.
 - Error messages quote at most 40 characters of an argument, and an integer too large to
   print no longer breaks the message.
 - `columnize` skips column counts whose first row is already too wide and, in column
   order, layouts it has already tried, so wide widths take far less time. The layouts are
   the same.
+- `wrap` breaks a very long word in time proportional to its length; it used to take
+  time proportional to the square of the length.
 
 ### Added
 

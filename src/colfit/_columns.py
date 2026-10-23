@@ -61,7 +61,7 @@ def columnize(items: Iterable[str], width: int = 80, *, gap: int = 2, order: Ord
     Raises ``TypeError`` when ``items`` is a single ``str`` or holds a non-``str`` item, or
     an argument has the wrong type, and ``ValueError`` for a ``width`` below 1, a negative
     ``gap``, an unknown ``order``, or an item holding a control character outside an
-    escape sequence.
+    escape sequence or ending inside an unfinished one.
     """
     int_arg("width", width, 1)
     int_arg("gap", gap, 0)

@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from colfit import Order, columnize, display_width, fit, pad, truncate, wrap
+from colfit import Order, columnize, display_width, fit, graphemes, pad, truncate, wrap
 
 
 @pytest.mark.parametrize(
@@ -128,3 +128,43 @@ def test_the_column_search_finds_what_the_plain_search_finds(order: Order) -> No
         ]
         width, gap = rng.randint(1, 60), rng.randint(0, 3)
         assert columnize(items, width, gap=gap, order=order) == _reference(items, width, gap, order)
+
+
+OPEN_ENDINGS = ["\x1b", "\x1b[1", "\x1b[", "\x9b38;5", "\x1b]8;;https://x.y", "\x1bPq", "\x1b ("]
+
+
+@pytest.mark.parametrize("ending", OPEN_ENDINGS)
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda t: truncate(t, 2),
+        lambda t: truncate("abcdef", 3, ellipsis=t),
+        lambda t: pad(t, 9),
+        lambda t: fit(t, 2),
+        lambda t: wrap(t, 4),
+        lambda t: wrap("x\n" + t + "\ny", 4),
+        lambda t: columnize(["a", t]),
+    ],
+)
+def test_text_ending_inside_an_escape_sequence_is_refused(
+    call: Callable[[str], object], ending: str
+) -> None:
+    # Anything written after it (padding, an ellipsis, the next cell) would vanish into it.
+    with pytest.raises(ValueError, match="ends inside an unfinished escape sequence"):
+        call("ab" + ending)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["ab\x1b[1m", "ab\x1b]8;;x\x07", "ab\x1b]8;;x\x1b\\", "ab\x1b(B", "\x1b[1;\u65e5b"],
+)
+def test_finished_or_cut_short_sequences_are_fine(text: str) -> None:
+    assert display_width(pad(text, 4)) == 4
+    assert display_width(fit(text, 1)) == 1
+    assert wrap(text, 4) == [text]
+    assert columnize([text, "c"]) == text + "  c"
+
+
+def test_display_width_and_graphemes_take_any_text() -> None:
+    assert display_width("ab\x1b]8;;x") == 2
+    assert "".join(graphemes("ab\x1b[1")) == "ab\x1b[1"

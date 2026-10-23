@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
-from ._escapes import pieces
+from ._escapes import is_open, pieces
 
 # C0 and C1 controls, and the Unicode line and paragraph separators.
 _CONTROL = re.compile("[\x00-\x1f\x7f-\x9f\u2028\u2029]")
@@ -51,7 +51,10 @@ def choice_arg(name: str, value: object, options: Sequence[str]) -> str:
 def line_arg(name: str, value: object) -> str:
     """A string that is one line, with no control characters outside escape sequences."""
     text = text_arg(name, value)
-    for piece, escape in pieces(text):
+    found_pieces = pieces(text)
+    if found_pieces and found_pieces[-1][1] and is_open(found_pieces[-1][0]):
+        raise ValueError(f"{name} ends inside an unfinished escape sequence")
+    for piece, escape in found_pieces:
         found = None if escape else _CONTROL.search(piece)
         if found:
             hint = (
