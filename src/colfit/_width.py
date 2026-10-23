@@ -33,8 +33,9 @@ def cluster_width(cluster: str) -> int:
         prepended += char_width(cluster[start])  # drawn before the cluster it joins
         start += 1
     if start and _is_mark(cluster[start]) and char_width(cluster[start - 1]):
-        # Marks (a ZWJ among them) with no base of their own sit on the visible prepended
-        # character, so a spacing mark among them widens it, as it widens any other base.
+        # Marks and a ZWJ are never a base, so right after a visible prepended character
+        # they sit on it and a spacing mark among them widens it, as it widens any other
+        # base. A letter, even a zero-width Hangul medial or final jamo, is its own base.
         start -= 1
         prepended -= char_width(cluster[start])
     base = cluster[start]
