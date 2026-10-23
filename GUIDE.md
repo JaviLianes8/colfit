@@ -18,8 +18,8 @@ from Unicode 18.0.0, so every Python version gives the same answer.
   columns; the text presentation selector (U+FE0E) makes it one.
 - A spacing vowel sign or a conjunct (consonant, linker, consonant) makes its syllable
   two, and so does a spacing mark alone in its cluster (Myanmar, Tai Tham, Ahom) or after
-  a prepended character with no other base (U+0600, U+0D4E; any jamo is a base), with any
-  marks or ZWJ between; a prepended character otherwise adds its width before its cluster.
+  a prepended character with no other base (U+0600, U+0D4E; a letter after it, even a jamo,
+  is a base), with any marks or ZWJ between; else a prepended character adds its own width.
 - Escape sequences take none and never split a cluster (see below).
 
 ```python
